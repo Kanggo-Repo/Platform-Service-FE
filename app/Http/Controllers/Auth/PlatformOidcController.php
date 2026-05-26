@@ -1,0 +1,184 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\Auth\KeycloakOidcService;
+use App\Services\Platform\PlatformServiceClient;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+use RuntimeException;
+
+class PlatformOidcController extends Controller
+{
+    public function __construct(
+        private readonly KeycloakOidcService $keycloakOidcService,
+        private readonly PlatformServiceClient $platformServiceClient,
+    ) {
+    }
+
+    public function showLogin(): View
+    {
+        return view('auth.login');
+    }
+
+    public function redirect(Request $request): RedirectResponse
+    {
+        $state = bin2hex(random_bytes(20));
+        $codeVerifier = bin2hex(random_bytes(32));
+
+        $request->session()->put('oidc_state', $state);
+        $request->session()->put('oidc_code_verifier', $codeVerifier);
+
+        return redirect()->away($this->keycloakOidcService->authorizationUrl(
+            state: $state,
+            codeVerifier: $codeVerifier,
+            redirectUri: route('auth.callback'),
+        ));
+    }
+
+    public function callback(Request $request): RedirectResponse
+    {
+        if ($request->string('state')->toString() !== $request->session()->pull('oidc_state')) {
+            return redirect()->route('login');
+        }
+
+        $codeVerifier = $request->session()->pull('oidc_code_verifier');
+        $code = $request->string('code')->toString();
+
+        if (! is_string($codeVerifier) || $codeVerifier === '' || $code === '') {
+            return redirect()->route('login');
+        }
+
+        $tokens = $this->keycloakOidcService->exchangeCode(
+            code: $code,
+            codeVerifier: $codeVerifier,
+            redirectUri: route('auth.callback'),
+        );
+
+        $request->session()->put('platform_access_token', $tokens['access_token'] ?? null);
+        $request->session()->put('platform_refresh_token', $tokens['refresh_token'] ?? null);
+        $request->session()->put('platform_id_token', $tokens['id_token'] ?? null);
+        $request->session()->put('platform_token_expires_at', now()->addSeconds((int) ($tokens['expires_in'] ?? 0))->timestamp);
+
+        $accessToken = $tokens['access_token'] ?? null;
+        if (! is_string($accessToken) || $accessToken === '') {
+            return redirect()->route('login');
+        }
+
+        $me = $this->platformServiceClient->me($accessToken);
+        $user = $this->upsertUser($me);
+
+        Auth::guard('web')->login($user, true);
+        $request->session()->regenerate();
+        $request->session()->put('platform_post_login_redirect', true);
+
+        return redirect()->route('workspace.index');
+    }
+
+    public function logout(Request $request): RedirectResponse
+    {
+        $idTokenHint = $request->session()->pull('platform_id_token');
+
+        $request->session()->forget([
+            'platform_access_token',
+            'platform_refresh_token',
+            'platform_token_expires_at',
+            'oidc_state',
+            'oidc_code_verifier',
+        ]);
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        Auth::guard('web')->logout();
+
+        return redirect()->away($this->keycloakOidcService->logoutUrl(
+            postLogoutRedirectUri: route('login'),
+            idTokenHint: $idTokenHint,
+        ));
+    }
+
+    private function upsertUser(array $payload): User
+    {
+        $identity = is_array($payload['identity'] ?? null) ? $payload['identity'] : [];
+        $subject = trim((string) ($identity['subject'] ?? ''));
+        $email = trim((string) ($identity['email'] ?? ''));
+        $name = trim((string) ($identity['name'] ?? ''));
+
+        if ($subject === '' || $email === '') {
+            throw new RuntimeException('Platform identity payload is incomplete.');
+        }
+
+        $authSubject = 'keycloak:'.$subject;
+
+        $user = User::query()
+            ->where('auth_provider', 'keycloak')
+            ->where('auth_subject', $authSubject)
+            ->first();
+
+        if (! $user) {
+            $user = User::query()->where('email', $email)->first();
+        }
+
+        if (! $user) {
+            $user = new User();
+            $user->password = Str::random(64);
+        }
+
+        $roles = is_array($payload['roles'] ?? null) ? $payload['roles'] : [];
+
+        $user->fill([
+            'name' => $name !== '' ? $name : $email,
+            'email' => $email,
+            'auth_provider' => 'keycloak',
+            'auth_subject' => $authSubject,
+            'role_snapshot' => $this->normalizeStringList($roles),
+            'permission_snapshot' => $this->snapshotPermissionsFromRoles($roles),
+            'last_login_at' => Carbon::now(),
+            'email_verified_at' => Carbon::now(),
+        ]);
+        $user->save();
+
+        return $user->fresh();
+    }
+
+    private function normalizeStringList(mixed $values): array
+    {
+        if (! is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $value): string => trim((string) $value),
+            $values,
+        )));
+    }
+
+    private function snapshotPermissionsFromRoles(array $roles): array
+    {
+        $normalizedRoles = $this->normalizeStringList($roles);
+
+        if (in_array('platform_operator', $normalizedRoles, true)) {
+            return [
+                'roles.view',
+                'roles.create',
+                'roles.update',
+                'roles.delete',
+                'roles.manage',
+                'users.view',
+                'users.create',
+                'users.update',
+                'users.delete',
+                'users.assign-roles',
+                'users.manage',
+            ];
+        }
+
+        return [];
+    }
+}
