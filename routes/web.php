@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/workspace');
 
-Route::get('/login', [PlatformOidcController::class, 'showLogin'])->name('login');
+Route::get('/login', [PlatformOidcController::class, 'redirect'])->name('login');
 Route::get('/auth/redirect', [PlatformOidcController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/callback', [PlatformOidcController::class, 'callback'])->name('auth.callback');
 Route::post('/logout', [PlatformOidcController::class, 'logout'])->name('auth.logout');

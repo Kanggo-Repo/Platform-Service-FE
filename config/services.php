@@ -47,6 +47,10 @@ return [
         'base_url' => env('CALCULATION_FE_BASE_URL'),
     ],
 
+    'monolith_app' => [
+        'base_url' => env('MONOLITH_BASE_URL', env('MONOLITH_AUTH_BASE_URL')),
+    ],
+
     'keycloak' => [
         'base_url' => env('KEYCLOAK_BASE_URL'),
         'realm' => env('KEYCLOAK_REALM', 'kanggo'),

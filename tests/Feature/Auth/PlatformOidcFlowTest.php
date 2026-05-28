@@ -12,12 +12,16 @@ beforeEach(function () {
     ]);
 });
 
-test('login page renders keycloak entry point', function () {
-    $this->get('/login')
-        ->assertOk()
-        ->assertSee('Masuk dengan Keycloak')
-        ->assertSee('Portal Login Database Material dan Perhitungan Proyek.')
-        ->assertSee(route('auth.redirect'), false);
+test('login route redirects directly to keycloak authorize endpoint', function () {
+    $response = $this->get('/login');
+
+    $response->assertRedirect();
+
+    $redirectUrl = $response->headers->get('Location');
+
+    expect($redirectUrl)->toContain('https://auth.example.test/realms/kanggo/protocol/openid-connect/auth');
+    expect($redirectUrl)->toContain('client_id=platform-fe');
+    expect($redirectUrl)->toContain('response_type=code');
 });
 
 test('auth redirect sends browser to keycloak authorize endpoint', function () {

@@ -27,8 +27,18 @@
             }
         }
 
-        $supplyFeUrl = rtrim((string) config('services.supply_fe.base_url', ''), '/');
-        $calculationFeUrl = rtrim((string) config('services.calculation_fe.base_url', ''), '/');
+        $supplyFeBaseUrl = rtrim((string) config('services.supply_fe.base_url', ''), '/');
+        $supplyFeUrl = static fn (string $path = ''): string => $supplyFeBaseUrl !== ''
+            ? $supplyFeBaseUrl.'/'.ltrim($path, '/')
+            : '#';
+        $calculationFeBaseUrl = rtrim((string) config('services.calculation_fe.base_url', ''), '/');
+        $calculationFeUrl = static fn (string $path = ''): string => $calculationFeBaseUrl !== ''
+            ? $calculationFeBaseUrl.'/'.ltrim($path, '/')
+            : '#';
+        $monolithBaseUrl = rtrim((string) config('services.monolith_app.base_url', ''), '/');
+        $monolithUrl = static fn (string $path = ''): string => $monolithBaseUrl !== ''
+            ? $monolithBaseUrl.'/'.ltrim($path, '/')
+            : '#';
     @endphp
     <title>{{ $topbarTitle }}</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -54,41 +64,6 @@
             margin-left: auto;
             display: inline-flex;
             align-items: center;
-        }
-
-        .topbar-app-shortcut {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-right: 12px;
-            padding: 8px 12px;
-            border-radius: 14px;
-            border: 1px solid rgba(226, 232, 240, 0.95);
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
-            color: #172033;
-            text-decoration: none;
-            font-size: 0.78rem;
-            font-weight: 800;
-            letter-spacing: -0.01em;
-            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
-            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
-        }
-
-        .topbar-app-shortcut:hover,
-        .topbar-app-shortcut:focus {
-            color: #891313;
-            border-color: rgba(137, 19, 19, 0.22);
-            transform: translateY(-1px);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
-        }
-
-        .topbar-app-shortcut small {
-            display: block;
-            font-size: 0.63rem;
-            color: #64748b;
-            font-weight: 800;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
         }
 
         .topbar-account-dropdown .dropdown-toggle::after {
@@ -257,6 +232,8 @@
             min-height: calc(100vh - 96px);
         }
 
+        .material-wrapper:hover .nav-dropdown-menu,
+        .work-item-wrapper:hover .nav-dropdown-menu,
         .settings-wrapper:hover .nav-dropdown-menu {
             opacity: 1;
             visibility: visible;
@@ -264,10 +241,31 @@
             pointer-events: auto;
         }
 
+        .sidebar-nav .material-wrapper:hover .nav-dropdown-menu,
+        .sidebar-nav .work-item-wrapper:hover .nav-dropdown-menu,
         .sidebar-nav .settings-wrapper:hover .nav-dropdown-menu {
             transform: translateX(0);
         }
 
+        .sidebar-warning-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            margin-left: 8px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: #E9D502;
+            color: #4a3f00;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1;
+            box-shadow: 0 8px 18px rgba(233, 213, 2, 0.28);
+        }
+
+        .material-wrapper .nav-link-btn,
+        .work-item-wrapper .nav-link-btn,
         .settings-wrapper .nav-link-btn {
             text-decoration: none;
             display: inline-flex;
@@ -366,24 +364,6 @@
                     $activeUser = auth()->user();
                     $activeRole = $activeUser->getRoleNames()->first() ?? 'user';
                 @endphp
-                @if ($supplyFeUrl !== '')
-                    <a href="{{ $supplyFeUrl }}" class="topbar-app-shortcut">
-                        <i class="bi bi-box-arrow-up-right"></i>
-                        <span>
-                            Supply FE
-                            <small>Open Service</small>
-                        </span>
-                    </a>
-                @endif
-                @if ($calculationFeUrl !== '')
-                    <a href="{{ $calculationFeUrl }}" class="topbar-app-shortcut">
-                        <i class="bi bi-box-arrow-up-right"></i>
-                        <span>
-                            Calculation FE
-                            <small>Open Service</small>
-                        </span>
-                    </a>
-                @endif
                 <div class="dropdown topbar-account-dropdown">
                     <button class="btn topbar-account-trigger dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <div class="topbar-account-meta">
@@ -438,6 +418,7 @@
             'users.update', 'users.manage', 'settings.manage',
         ]);
         $canSeeSettings = $canSeeRoles || $canSeeUsers || $canSeeRegistration;
+        $isSettingsRoute = request()->routeIs('settings.*', 'admin.roles.*', 'admin.registration.*');
     @endphp
     <aside class="sidebar-nav" id="sidebarNav">
         <div class="nav">
@@ -447,27 +428,158 @@
                 </a>
             @endif
 
+            @if($supplyFeBaseUrl !== '')
+                <div class="nav-dropdown-wrapper material-wrapper">
+                    <a href="{{ $supplyFeUrl('/materials') }}" class="nav-link-btn" id="materialNavLink">
+                        <i class="bi bi-box-seam"></i> Material <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
+                    </a>
+
+                    <div class="nav-dropdown-menu" id="materialDropdownMenu">
+                        <div class="nav-dropdown-content">
+                            <div class="dropdown-item-parent">
+                                <div class="dropdown-item-trigger" tabindex="0" role="button">
+                                    Lihat Material
+                                    <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                </div>
+
+                                <div class="dropdown-sub-menu">
+                                    <div class="dropdown-header">Pilih Material</div>
+                                    <div class="dropdown-grid">
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="steel"> Besi</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="kasa_gypsum"> Kasa Gypsum</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="paku_tembak"> Paku Tembak</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="paku"> Paku</label>
+                                    </div>
+                                    <div class="nav-material-actions">
+                                        <button type="button" id="applyMaterialFilter" class="btn btn-primary nav-material-apply">Terapkan Filter</button>
+                                        <button type="button" id="resetMaterialFilterNav" class="btn btn-primary nav-material-reset">Reset</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="dropdown-item-parent">
+                                <div class="dropdown-item-trigger" tabindex="0" role="button">
+                                    Tambah Material
+                                    <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                </div>
+
+                                <div class="dropdown-sub-menu">
+                                    <div class="dropdown-header">Pilih Material</div>
+                                    <div class="dropdown-grid">
+                                        <a href="{{ $supplyFeUrl('/bricks/create') }}" class="dropdown-item">Bata</a>
+                                        <a href="{{ $supplyFeUrl('/cats/create') }}" class="dropdown-item">Cat</a>
+                                        <a href="{{ $supplyFeUrl('/ceramics/create') }}" class="dropdown-item">Keramik</a>
+                                        <a href="{{ $supplyFeUrl('/sands/create') }}" class="dropdown-item">Pasir</a>
+                                        <a href="{{ $supplyFeUrl('/cements/create') }}" class="dropdown-item">Semen</a>
+                                        <a href="{{ $supplyFeUrl('/steels/create') }}" class="dropdown-item">Besi</a>
+                                        <a href="{{ $supplyFeUrl('/kasa_gypsums/create') }}" class="dropdown-item">Kasa Gypsum</a>
+                                        <a href="{{ $supplyFeUrl('/paku_tembaks/create') }}" class="dropdown-item">Paku Tembak</a>
+                                        <a href="{{ $supplyFeUrl('/pakus/create') }}" class="dropdown-item">Paku</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ $supplyFeUrl('/stores') }}" target="_self">
+                    <i class="bi bi-shop"></i> Toko
+                </a>
+            @endif
+
+            @if($calculationFeBaseUrl !== '')
+                <div class="nav-dropdown-wrapper work-item-wrapper">
+                    <button type="button" class="nav-link-btn" id="workItemDropdownToggle">
+                        <i class="bi bi-building-gear"></i> Proyek
+                        <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
+                    </button>
+
+                    <div class="nav-dropdown-menu" id="workItemDropdownMenu">
+                        <div class="nav-dropdown-content">
+                            <div class="dropdown-item-parent">
+                                <a href="{{ $calculationFeUrl('/material-calculations/log') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    Lihat Daftar Item Pekerjaan
+                                </a>
+                            </div>
+                            <div class="dropdown-item-parent">
+                                <a href="{{ $calculationFeUrl('/material-calculations/create') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    Hitung Item Pekerjaan Proyek
+                                </a>
+                            </div>
+                            <div class="dropdown-item-parent">
+                                <a href="{{ $calculationFeUrl('/material-calculations/drafts') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    Draft Hitungan Proyek
+                                </a>
+                            </div>
+                            <div class="dropdown-item-parent">
+                                <a href="{{ $calculationFeUrl('/material-calculations/log') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    Log Hitungan Proyek
+                                </a>
+                            </div>
+                            <div class="dropdown-item-parent">
+                                <a href="https://docs.google.com/spreadsheets/d/1tsEQ3a4duHw2AROxsbHaz41n3EiwoFQEpqmWc5XdMP4/edit?usp=sharing" target="_blank" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    Tambah Item Pekerjaan
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <a href="{{ $monolithUrl('/workers') }}" target="_self">
+                <i class="bi bi-people"></i> Tukang
+            </a>
+
+            <a href="{{ $monolithUrl('/skills') }}" target="_self">
+                <i class="bi bi-tools"></i> Keahlian
+            </a>
+
+            @if($supplyFeBaseUrl !== '')
+                <a href="{{ $supplyFeUrl('/units') }}" target="_self">
+                    <i class="bi bi-rulers"></i> Satuan
+                </a>
+            @endif
+
             @if($canSeeSettings)
-                <div class="nav-dropdown-wrapper settings-wrapper">
-                    <a href="{{ $canSeeUsers ? route('settings.users.index') : route('settings.roles.index') }}" class="nav-link-btn {{ request()->routeIs('settings.*', 'admin.roles.*', 'admin.registration.*') ? 'active' : '' }}">
+                <div class="nav-dropdown-wrapper settings-wrapper" style="margin-left: auto;">
+                    <a href="{{ $canSeeUsers ? route('settings.users.index') : route('settings.roles.index') }}" class="nav-link-btn {{ $isSettingsRoute ? 'active' : '' }}" id="settingsDropdownToggle">
                         <i class="bi bi-gear"></i> Pengaturan <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                     </a>
 
-                    <div class="nav-dropdown-menu">
+                    <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
                         <div class="nav-dropdown-content">
+                            @if($calculationFeBaseUrl !== '')
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ $calculationFeUrl('/settings/recommendations') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Manajemen Filter Preferensi
+                                    </a>
+                                </div>
+                            @endif
+                            @if($supplyFeBaseUrl !== '')
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ $supplyFeUrl('/settings/store-search-radius') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Radius Pencarian Toko
+                                    </a>
+                                </div>
+                            @endif
                             @if($canSeeUsers)
                                 <a href="{{ route('settings.users.index') }}" class="dropdown-item {{ request()->routeIs('settings.users.*') ? 'active' : '' }}">
-                                    <i class="bi bi-people"></i> Pengguna
+                                    <i class="bi bi-people"></i> Manajemen User
                                 </a>
                             @endif
                             @if($canSeeRoles)
                                 <a href="{{ route('settings.roles.index') }}" class="dropdown-item {{ request()->routeIs('settings.roles.*') ? 'active' : '' }}">
-                                    <i class="bi bi-shield-lock"></i> Roles
+                                    <i class="bi bi-shield-lock"></i> Manajemen Role
                                 </a>
                             @endif
                             @if($canSeeRegistration)
                                 <a href="{{ route('settings.registration.edit') }}" class="dropdown-item {{ request()->routeIs('settings.registration.*', 'admin.registration.*') ? 'active' : '' }}">
-                                    <i class="bi bi-person-plus"></i> Registrasi
+                                    <i class="bi bi-person-plus"></i> Status Registrasi
                                 </a>
                             @endif
                         </div>
@@ -475,17 +587,6 @@
                 </div>
             @endif
 
-            @if($supplyFeUrl !== '')
-                <a href="{{ $supplyFeUrl }}">
-                    <i class="bi bi-box-seam"></i> Supply
-                </a>
-            @endif
-
-            @if($calculationFeUrl !== '')
-                <a href="{{ $calculationFeUrl }}">
-                    <i class="bi bi-calculator"></i> Calculation
-                </a>
-            @endif
         </div>
     </aside>
 
@@ -530,18 +631,136 @@
     <script src="{{ asset('js/lazy-loading.js') }}"></script>
     <script>
         (function () {
-            const sidebarNav = document.getElementById('sidebarNav');
             const navOverlay = document.getElementById('navOverlay');
             const navLogoToggle = document.getElementById('navLogoToggle');
 
+            function closeNav() {
+                document.body.classList.remove('nav-open');
+            }
+
             function toggleNav() {
-                sidebarNav?.classList.toggle('active');
-                navOverlay?.classList.toggle('active');
                 document.body.classList.toggle('nav-open');
             }
 
             navLogoToggle?.addEventListener('click', toggleNav);
-            navOverlay?.addEventListener('click', toggleNav);
+            navOverlay?.addEventListener('click', closeNav);
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeNav();
+                }
+            });
+
+            const activeDropdowns = new Set();
+
+            function initializeDropdown(toggleId, menuId) {
+                const dropdownToggle = document.getElementById(toggleId);
+                const dropdownMenu = document.getElementById(menuId);
+
+                if (!dropdownToggle || !dropdownMenu) {
+                    return;
+                }
+
+                const openDropdown = () => {
+                    activeDropdowns.forEach((dropdownInfo) => {
+                        if (dropdownInfo.toggleId !== toggleId) {
+                            dropdownInfo.closeDropdown();
+                        }
+                    });
+                    dropdownMenu.classList.add('show');
+                    dropdownToggle.classList.add('dropdown-open');
+                    dropdownToggle.setAttribute('aria-expanded', 'true');
+                };
+
+                const closeDropdown = () => {
+                    dropdownMenu.classList.remove('show');
+                    dropdownToggle.classList.remove('dropdown-open');
+                    dropdownToggle.setAttribute('aria-expanded', 'false');
+                };
+
+                activeDropdowns.add({
+                    toggleId,
+                    closeDropdown,
+                });
+
+                dropdownToggle.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (dropdownMenu.classList.contains('show')) {
+                        closeDropdown();
+                        return;
+                    }
+
+                    openDropdown();
+                });
+
+                document.addEventListener('click', function (event) {
+                    if (dropdownMenu.contains(event.target) || dropdownToggle.contains(event.target)) {
+                        return;
+                    }
+
+                    closeDropdown();
+                });
+            }
+
+            initializeDropdown('materialNavLink', 'materialDropdownMenu');
+            initializeDropdown('workItemDropdownToggle', 'workItemDropdownMenu');
+            initializeDropdown('settingsDropdownToggle', 'settingsDropdownMenu');
+
+            const navToggles = document.querySelectorAll('.nav-material-toggle');
+            const applyFilterBtn = document.getElementById('applyMaterialFilter');
+            const resetFilterBtn = document.getElementById('resetMaterialFilterNav');
+            const materialsBaseUrl = @json($supplyFeUrl('/materials'));
+            const storageKey = 'materials_index_filter_preferences';
+
+            if (navToggles.length > 0 && applyFilterBtn && resetFilterBtn) {
+                let savedFilter = { selected: [] };
+
+                try {
+                    savedFilter = JSON.parse(localStorage.getItem(storageKey)) || { selected: [] };
+                } catch (error) {
+                    savedFilter = { selected: [] };
+                }
+
+                const selectedSet = new Set(Array.isArray(savedFilter.selected) ? savedFilter.selected : []);
+
+                navToggles.forEach((toggle) => {
+                    const wrapper = toggle.closest('.dropdown-item');
+                    toggle.checked = selectedSet.has(toggle.dataset.material);
+                    wrapper?.classList.toggle('checked', toggle.checked);
+
+                    toggle.addEventListener('change', function () {
+                        wrapper?.classList.toggle('checked', this.checked);
+                    });
+                });
+
+                applyFilterBtn.addEventListener('click', function () {
+                    const selected = Array.from(navToggles)
+                        .filter((toggle) => toggle.checked)
+                        .map((toggle) => toggle.dataset.material);
+
+                    localStorage.setItem(storageKey, JSON.stringify({ selected }));
+
+                    if (selected.length === 0) {
+                        window.location.href = materialsBaseUrl;
+                        return;
+                    }
+
+                    const params = new URLSearchParams();
+                    selected.forEach((material) => params.append('materials[]', material));
+                    window.location.href = `${materialsBaseUrl}?${params.toString()}`;
+                });
+
+                resetFilterBtn.addEventListener('click', function () {
+                    navToggles.forEach((toggle) => {
+                        toggle.checked = false;
+                        toggle.closest('.dropdown-item')?.classList.remove('checked');
+                    });
+                    localStorage.removeItem(storageKey);
+                    window.location.href = materialsBaseUrl;
+                });
+            }
         })();
     </script>
     <script>

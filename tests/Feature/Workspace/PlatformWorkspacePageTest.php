@@ -8,6 +8,7 @@ beforeEach(function () {
         'services.platform_service.base_url' => 'http://127.0.0.1:8011',
         'services.supply_fe.base_url' => 'http://supplyfe.lvh.me:8009',
         'services.calculation_fe.base_url' => 'http://calcfe.lvh.me:8001',
+        'services.monolith_app.base_url' => 'http://legacy.lvh.me:8002',
     ]);
 });
 
@@ -218,6 +219,12 @@ test('workspace renders donor dashboard for active platform users', function () 
         ->assertSee('Selamat Datang di Material Database')
         ->assertSee('Total Material')
         ->assertSee('Mitra Toko')
+        ->assertSee('Tukang')
+        ->assertSee('Keahlian')
+        ->assertSee('Manajemen User')
+        ->assertSee('Manajemen Role')
+        ->assertSee('Status Registrasi')
+        ->assertSee('data-material="brick"', false)
         ->assertSee('Platform Operator')
         ->assertSee('Distribusi Material');
 });
