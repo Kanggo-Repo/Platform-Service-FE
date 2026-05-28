@@ -14,6 +14,8 @@
         :root {
             --auth-brand: #891313;
             --auth-brand-deep: #5f0d0d;
+            --auth-brand-soft: #fff2f2;
+            --auth-ink: #172033;
             --auth-muted: #64748b;
             --auth-line: #cbd5e1;
         }
@@ -35,6 +37,7 @@
 
         .auth-shell {
             width: min(100%, 980px);
+            height: 640px;
             min-height: 640px;
             display: grid;
             grid-template-columns: 1.02fr 0.98fr;
@@ -58,6 +61,20 @@
 
         .auth-brand img {
             width: 148px;
+        }
+
+        .auth-brand-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(255, 242, 242, 0.12);
+            color: rgba(255, 242, 242, 0.94);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: .1em;
+            text-transform: uppercase;
         }
 
         .auth-brand h1 {
@@ -93,6 +110,7 @@
         }
 
         .auth-card-inner {
+            flex: 0 1 auto;
             width: 100%;
             max-width: 100%;
             display: flex;
@@ -105,7 +123,7 @@
             font-size: 1.45rem;
             font-weight: 800;
             margin-bottom: 8px;
-            color: #172033;
+            color: var(--auth-ink);
             letter-spacing: -0.03em;
         }
 
@@ -113,6 +131,24 @@
             color: var(--auth-muted);
             margin-bottom: 24px;
             line-height: 1.7;
+        }
+
+        .form-label {
+            font-weight: 700;
+            color: #334155;
+            font-size: 0.86rem;
+        }
+
+        .form-control {
+            min-height: 48px;
+            border-radius: 14px;
+            border-color: var(--auth-line);
+            padding-inline: 14px;
+        }
+
+        .form-control:focus {
+            border-color: var(--auth-brand);
+            box-shadow: 0 0 0 0.2rem rgba(137, 19, 19, 0.14);
         }
 
         .btn-auth {
@@ -124,8 +160,30 @@
             box-shadow: 0 14px 26px rgba(137, 19, 19, 0.18);
         }
 
+        .auth-links {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 14px 0 22px;
+            font-size: 0.88rem;
+        }
+
+        .auth-inline-link,
+        .auth-footer a {
+            color: var(--auth-brand);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .auth-inline-link:hover,
+        .auth-footer a:hover {
+            color: var(--auth-brand-deep);
+        }
+
         .auth-footer {
             margin-top: 18px;
+            padding-top: 0;
             font-size: 0.92rem;
             color: var(--auth-muted);
         }
@@ -134,8 +192,14 @@
             display: none;
         }
 
+        .auth-card .alert {
+            border-radius: 14px;
+            font-size: 0.88rem;
+        }
+
         @media (max-width: 900px) {
             .auth-shell {
+                height: auto;
                 min-height: auto;
                 grid-template-columns: 1fr;
             }
@@ -143,6 +207,10 @@
             .auth-brand,
             .auth-card {
                 padding: 34px 30px;
+            }
+
+            .auth-card-inner {
+                justify-content: center;
             }
         }
     </style>
@@ -152,6 +220,9 @@
         <section class="auth-brand">
             <div>
                 <img src="/kanggo.png" alt="Kanggo">
+                @hasSection('auth_kicker')
+                    <div class="auth-brand-kicker">@yield('auth_kicker')</div>
+                @endif
                 <h1>@yield('auth_brand_title')</h1>
                 <p>@yield('auth_brand_copy')</p>
             </div>
@@ -162,6 +233,11 @@
             <div class="auth-card-inner">
                 <h2>@yield('auth_card_title')</h2>
                 <p>@yield('auth_card_copy')</p>
+
+                @if (session('status'))
+                    <div class="alert alert-success">{{ session('status') }}</div>
+                @endif
+
                 @yield('auth_form')
                 @yield('auth_footer')
             </div>

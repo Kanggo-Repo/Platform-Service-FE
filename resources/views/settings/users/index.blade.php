@@ -731,7 +731,7 @@
                 <tbody>
                     <tr class="um-create-row">
                         <td colspan="6">
-                            <div id="user-create-row" class="collapse {{ old('form_context') === 'create-user' ? 'show' : 'false' }}">
+                            <div id="user-create-row" class="collapse {{ old('form_context') === 'create-user' ? 'show' : '' }}">
                                 <div class="um-editor">
                                     <form action="{{ route('settings.users.store') }}" method="POST">
                                         @csrf

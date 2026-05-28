@@ -23,6 +23,16 @@ class PlatformServiceClient
         return $this->request('/api/v1/dashboard', $accessToken);
     }
 
+    public function profile(string $accessToken): array
+    {
+        return $this->request('/api/v1/profile', $accessToken);
+    }
+
+    public function updateProfile(string $accessToken, array $payload): array
+    {
+        return $this->write('/api/v1/profile', 'PUT', $accessToken, $payload);
+    }
+
     public function roles(string $accessToken): array
     {
         return $this->request('/api/v1/roles', $accessToken);

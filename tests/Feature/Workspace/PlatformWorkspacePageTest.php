@@ -215,9 +215,73 @@ test('workspace renders donor dashboard for active platform users', function () 
         'platform_access_token' => 'access-token-123',
     ])->get(route('workspace.index'))
         ->assertOk()
-        ->assertSee('Selamat Datang di Platform Service')
-        ->assertSee('Total Pengguna')
-        ->assertSee('Permission Catalog')
+        ->assertSee('Selamat Datang di Material Database')
+        ->assertSee('Total Material')
+        ->assertSee('Mitra Toko')
         ->assertSee('Platform Operator')
-        ->assertSee('Distribusi Akses Layanan');
+        ->assertSee('Distribusi Material');
+});
+
+test('workspace resets session and redirects to login when dashboard request fails', function () {
+    Http::fake([
+        'http://127.0.0.1:8011/api/v1/me' => Http::response([
+            'data' => [
+                'identity' => [
+                    'subject' => 'kc-user-1',
+                    'email' => 'user@example.test',
+                    'name' => 'Platform User',
+                ],
+                'profile' => [
+                    'id' => 1,
+                    'status' => 'active',
+                    'display_name' => 'Platform User',
+                    'preferred_app' => 'platform',
+                ],
+                'access' => [
+                    'pending_access' => false,
+                    'allowed_services' => ['platform'],
+                    'blocked_services' => [],
+                    'pending_services' => ['supply', 'calculation'],
+                ],
+                'roles' => ['platform_operator'],
+                'navigation' => [
+                    'preferred_route' => 'platform.dashboard',
+                ],
+            ],
+        ]),
+        'http://127.0.0.1:8011/api/v1/navigation' => Http::response([
+            'data' => [
+                'services' => [
+                    ['service' => 'platform', 'label' => 'Platform', 'access_status' => 'allowed', 'entry_url' => null],
+                    ['service' => 'supply', 'label' => 'Supply', 'access_status' => 'pending', 'entry_url' => null],
+                    ['service' => 'calculation', 'label' => 'Calculation', 'access_status' => 'pending', 'entry_url' => null],
+                ],
+                'preferred_app' => 'platform',
+                'preferred_route' => 'platform.dashboard',
+                'pending_access' => false,
+                'allowed_services' => ['platform'],
+                'blocked_services' => [],
+                'pending_services' => ['supply', 'calculation'],
+            ],
+        ]),
+        'http://127.0.0.1:8011/api/v1/dashboard' => Http::response([
+            'message' => 'Upstream dashboard error.',
+        ], 500),
+    ]);
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+        'platform_refresh_token' => 'refresh-token-123',
+        'platform_id_token' => 'id-token-123',
+        'platform_token_expires_at' => now()->addHour()->timestamp,
+    ])->get(route('workspace.index'))
+        ->assertRedirect(route('login'))
+        ->assertSessionMissing([
+            'platform_access_token',
+            'platform_refresh_token',
+            'platform_id_token',
+            'platform_token_expires_at',
+        ]);
 });

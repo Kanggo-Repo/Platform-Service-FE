@@ -1,6 +1,7 @@
 @extends('layouts.auth')
 
 @section('title', 'Login Admin')
+@section('auth_kicker', 'Admin Access')
 @section('auth_brand_title', 'Portal Login Database Material dan Perhitungan Proyek.')
 @section('auth_brand_copy', 'Akses aplikasi dibatasi ke user yang sudah diberikan role oleh administrator. Login dipusatkan di Keycloak agar supply, calculation, dan platform memakai SSO yang sama.')
 @section('auth_card_title', 'Masuk')

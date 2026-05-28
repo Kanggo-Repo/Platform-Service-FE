@@ -8,13 +8,13 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use RuntimeException;
 
-class PlatformAdminController extends Controller
+class ProfileController extends Controller
 {
     public function __construct(
         private readonly PlatformServiceClient $platformServiceClient,
     ) {}
 
-    public function registration(Request $request): View|RedirectResponse
+    public function show(Request $request): View|RedirectResponse
     {
         $accessToken = $this->accessTokenFromSession($request);
 
@@ -23,17 +23,18 @@ class PlatformAdminController extends Controller
         }
 
         try {
-            $policy = $this->platformServiceClient->registrationSettings($accessToken);
+            $profile = $this->platformServiceClient->profile($accessToken);
         } catch (RuntimeException) {
             return $this->redirectToLoginAfterSessionReset($request);
         }
 
-        return view('settings.registration.edit', [
-            'policy' => $policy,
+        return view('profile.show', [
+            'profile' => $profile,
+            'user' => $request->user(),
         ]);
     }
 
-    public function updateRegistration(Request $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
         $accessToken = $this->accessTokenFromSession($request);
 
@@ -42,19 +43,23 @@ class PlatformAdminController extends Controller
         }
 
         $validated = $request->validate([
-            'registration_enabled' => ['required', 'boolean'],
-            'approval_mode' => ['required', 'string', 'in:admin_approval,auto_approve'],
-            'default_new_user_status' => ['required', 'string', 'in:pending_access,active,suspended,archived'],
-            'notes' => ['nullable', 'string'],
+            'name' => ['required', 'string', 'max:255'],
+            'password' => ['nullable', 'string', 'confirmed', 'min:8'],
         ]);
 
         try {
-            $this->platformServiceClient->updateRegistrationSettings($accessToken, $validated);
-        } catch (RuntimeException) {
-            return $this->redirectToLoginAfterSessionReset($request);
+            $profile = $this->platformServiceClient->updateProfile($accessToken, $validated);
+        } catch (RuntimeException $exception) {
+            return redirect()->route('profile.show')->with('error', $exception->getMessage())->withInput();
         }
 
-        return redirect()->route('settings.registration.edit');
+        $user = $request->user();
+        $user->forceFill([
+            'name' => $profile['name'] ?? $validated['name'],
+            'email' => $profile['email'] ?? $user->email,
+        ])->save();
+
+        return redirect()->route('profile.show')->with('success', 'Profile berhasil diperbarui.');
     }
 
     private function accessTokenFromSession(Request $request): ?string

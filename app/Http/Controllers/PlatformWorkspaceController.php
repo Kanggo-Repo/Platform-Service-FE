@@ -12,8 +12,7 @@ class PlatformWorkspaceController extends Controller
 {
     public function __construct(
         private readonly PlatformServiceClient $platformServiceClient,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -49,7 +48,18 @@ class PlatformWorkspaceController extends Controller
             }
         }
 
-        $dashboard = $this->platformServiceClient->dashboard($accessToken);
+        try {
+            $dashboard = $this->platformServiceClient->dashboard($accessToken);
+        } catch (RuntimeException) {
+            $request->session()->forget([
+                'platform_access_token',
+                'platform_refresh_token',
+                'platform_id_token',
+                'platform_token_expires_at',
+            ]);
+
+            return redirect()->route('login');
+        }
 
         return view('workspace.index', [
             'me' => $me,

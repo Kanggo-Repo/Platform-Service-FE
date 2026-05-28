@@ -3,8 +3,9 @@
 use App\Http\Controllers\Auth\PlatformOidcController;
 use App\Http\Controllers\PlatformAccessController;
 use App\Http\Controllers\PlatformAdminController;
-use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\PlatformWorkspaceController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoleManagementController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,9 +19,10 @@ Route::post('/logout', [PlatformOidcController::class, 'logout'])->name('auth.lo
 Route::middleware('platform.auth')->group(function () {
     Route::get('/access-pending', [PlatformAccessController::class, 'pending'])->name('platform.access.pending');
     Route::get('/workspace', [PlatformWorkspaceController::class, 'index'])->name('workspace.index');
-    Route::get('/admin/roles', [PlatformAdminController::class, 'roles'])->name('admin.roles.index');
-    Route::get('/admin/registration', [PlatformAdminController::class, 'registration'])->name('admin.registration.edit');
-    Route::put('/admin/registration', [PlatformAdminController::class, 'updateRegistration'])->name('admin.registration.update');
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::redirect('/admin/roles', '/settings/roles')->name('admin.roles.index');
+    Route::redirect('/admin/registration', '/settings/registration')->name('admin.registration.edit');
 
     Route::prefix('settings/roles')
         ->name('settings.roles.')
@@ -30,6 +32,14 @@ Route::middleware('platform.auth')->group(function () {
             Route::post('/', [RoleManagementController::class, 'store'])->middleware('platform.permission:roles.create')->name('store');
             Route::put('/{role}', [RoleManagementController::class, 'update'])->middleware('platform.permission:roles.update')->name('update');
             Route::delete('/{role}', [RoleManagementController::class, 'destroy'])->middleware('platform.permission:roles.delete')->name('destroy');
+        });
+
+    Route::prefix('settings/registration')
+        ->name('settings.registration.')
+        ->middleware('platform.permission:users.update')
+        ->group(function () {
+            Route::get('/', [PlatformAdminController::class, 'registration'])->name('edit');
+            Route::put('/', [PlatformAdminController::class, 'updateRegistration'])->name('update');
         });
 
     Route::prefix('settings/users')

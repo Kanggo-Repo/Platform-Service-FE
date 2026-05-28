@@ -11,8 +11,11 @@
         $topbarTitle = $explicitTopbarTitle !== '' ? $explicitTopbarTitle : ($explicitTitle !== '' ? $explicitTitle : 'Platform Service');
         $routeTitleMap = [
             'workspace.*' => 'Dashboard',
+            'profile.*' => 'Profile',
             'platform.access.pending' => 'Akses Menunggu Persetujuan',
             'settings.*' => 'Pengaturan',
+            'admin.roles.*' => 'Pengaturan',
+            'admin.registration.*' => 'Pengaturan',
         ];
 
         if ($explicitTopbarTitle === '') {
@@ -400,9 +403,9 @@
                             <span class="topbar-menu-role">{{ \Illuminate\Support\Str::headline($activeRole) }}</span>
                         </div>
 
-                        <a class="dropdown-item" href="{{ route('workspace.index') }}">
-                            <i class="bi bi-grid-1x2"></i>
-                            <span>Dashboard</span>
+                        <a class="dropdown-item" href="{{ route('profile.show') }}">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Profile</span>
                         </a>
 
                         <div class="dropdown-divider"></div>
@@ -431,7 +434,10 @@
         $canSeeUsers = $sidebarGate->allowsAny($sidebarUser, [
             'users.view', 'users.create', 'users.update', 'users.delete', 'users.assign-roles', 'users.manage', 'settings.manage',
         ]);
-        $canSeeSettings = $canSeeRoles || $canSeeUsers;
+        $canSeeRegistration = $sidebarGate->allowsAny($sidebarUser, [
+            'users.update', 'users.manage', 'settings.manage',
+        ]);
+        $canSeeSettings = $canSeeRoles || $canSeeUsers || $canSeeRegistration;
     @endphp
     <aside class="sidebar-nav" id="sidebarNav">
         <div class="nav">
@@ -443,7 +449,7 @@
 
             @if($canSeeSettings)
                 <div class="nav-dropdown-wrapper settings-wrapper">
-                    <a href="{{ $canSeeUsers ? route('settings.users.index') : route('settings.roles.index') }}" class="nav-link-btn {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                    <a href="{{ $canSeeUsers ? route('settings.users.index') : route('settings.roles.index') }}" class="nav-link-btn {{ request()->routeIs('settings.*', 'admin.roles.*', 'admin.registration.*') ? 'active' : '' }}">
                         <i class="bi bi-gear"></i> Pengaturan <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                     </a>
 
@@ -457,6 +463,11 @@
                             @if($canSeeRoles)
                                 <a href="{{ route('settings.roles.index') }}" class="dropdown-item {{ request()->routeIs('settings.roles.*') ? 'active' : '' }}">
                                     <i class="bi bi-shield-lock"></i> Roles
+                                </a>
+                            @endif
+                            @if($canSeeRegistration)
+                                <a href="{{ route('settings.registration.edit') }}" class="dropdown-item {{ request()->routeIs('settings.registration.*', 'admin.registration.*') ? 'active' : '' }}">
+                                    <i class="bi bi-person-plus"></i> Registrasi
                                 </a>
                             @endif
                         </div>
@@ -587,6 +598,19 @@
                     });
                 }
             });
+
+            const pending = sessionStorage.getItem('pendingToast');
+            if (pending) {
+                try {
+                    const parsed = JSON.parse(pending);
+                    if (parsed?.message) {
+                        createToast(parsed.message, parsed.type || 'success', parsed.options || {});
+                    }
+                } catch (error) {
+                    console.error('Failed to parse pending toast', error);
+                }
+                sessionStorage.removeItem('pendingToast');
+            }
         })();
     </script>
     <script>
@@ -601,6 +625,7 @@
             const closeTargets = modal.querySelectorAll('[data-confirm-close]');
 
             let resolver = null;
+            let cancelValue = false;
 
             function closeConfirm(result) {
                 if (!resolver) return;
@@ -612,22 +637,44 @@
                 resolve(result);
             }
 
+            function openConfirm(options) {
+                const opts = options || {};
+                const hideCancel = !!opts.hideCancel;
+
+                titleEl.textContent = opts.title || 'Konfirmasi';
+                messageEl.textContent = opts.message || 'Apakah Anda yakin?';
+                okBtn.textContent = opts.confirmText || (hideCancel ? 'Tutup' : 'Hapus');
+                cancelBtn.textContent = opts.cancelText || 'Batal';
+                modal.dataset.type = opts.type || 'danger';
+                cancelBtn.hidden = hideCancel;
+                cancelBtn.style.display = hideCancel ? 'none' : '';
+                cancelValue = opts.cancelValue !== undefined ? opts.cancelValue : false;
+
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('confirm-open');
+            }
+
             window.showConfirm = function (options) {
                 return new Promise((resolve) => {
+                    if (resolver) {
+                        resolver(false);
+                    }
                     resolver = resolve;
-                    titleEl.textContent = options?.title || 'Konfirmasi';
-                    messageEl.textContent = options?.message || 'Apakah Anda yakin?';
-                    okBtn.textContent = options?.confirmText || 'Hapus';
-                    cancelBtn.textContent = options?.cancelText || 'Batal';
-                    modal.classList.add('active');
-                    modal.setAttribute('aria-hidden', 'false');
-                    document.body.classList.add('confirm-open');
+                    openConfirm(options);
                 });
             };
 
             okBtn?.addEventListener('click', () => closeConfirm(true));
-            cancelBtn?.addEventListener('click', () => closeConfirm(false));
+            cancelBtn?.addEventListener('click', () => closeConfirm(cancelValue));
             closeTargets.forEach((el) => el.addEventListener('click', () => closeConfirm(false)));
+
+            document.addEventListener('keydown', (event) => {
+                if (!modal.classList.contains('active')) return;
+                if (event.key === 'Escape') {
+                    closeConfirm(false);
+                }
+            });
 
             document.addEventListener('submit', async (event) => {
                 const form = event.target;
@@ -641,6 +688,7 @@
                     message,
                     confirmText: form.dataset.confirmOk || 'Hapus',
                     cancelText: form.dataset.confirmCancel || 'Batal',
+                    type: form.dataset.confirmType || 'danger',
                 });
 
                 if (confirmed) {
