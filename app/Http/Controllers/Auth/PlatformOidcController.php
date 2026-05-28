@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Auth\KeycloakOidcService;
 use App\Services\Platform\PlatformServiceClient;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RuntimeException;
@@ -19,8 +19,7 @@ class PlatformOidcController extends Controller
     public function __construct(
         private readonly KeycloakOidcService $keycloakOidcService,
         private readonly PlatformServiceClient $platformServiceClient,
-    ) {
-    }
+    ) {}
 
     public function showLogin(): View
     {
@@ -126,11 +125,12 @@ class PlatformOidcController extends Controller
         }
 
         if (! $user) {
-            $user = new User();
+            $user = new User;
             $user->password = Str::random(64);
         }
 
         $roles = is_array($payload['roles'] ?? null) ? $payload['roles'] : [];
+        $permissions = is_array($payload['permissions'] ?? null) ? $payload['permissions'] : [];
 
         $user->fill([
             'name' => $name !== '' ? $name : $email,
@@ -138,7 +138,7 @@ class PlatformOidcController extends Controller
             'auth_provider' => 'keycloak',
             'auth_subject' => $authSubject,
             'role_snapshot' => $this->normalizeStringList($roles),
-            'permission_snapshot' => $this->snapshotPermissionsFromRoles($roles),
+            'permission_snapshot' => $this->normalizeStringList($permissions),
             'last_login_at' => Carbon::now(),
             'email_verified_at' => Carbon::now(),
         ]);
@@ -157,28 +157,5 @@ class PlatformOidcController extends Controller
             static fn (mixed $value): string => trim((string) $value),
             $values,
         )));
-    }
-
-    private function snapshotPermissionsFromRoles(array $roles): array
-    {
-        $normalizedRoles = $this->normalizeStringList($roles);
-
-        if (in_array('platform_operator', $normalizedRoles, true)) {
-            return [
-                'roles.view',
-                'roles.create',
-                'roles.update',
-                'roles.delete',
-                'roles.manage',
-                'users.view',
-                'users.create',
-                'users.update',
-                'users.delete',
-                'users.assign-roles',
-                'users.manage',
-            ];
-        }
-
-        return [];
     }
 }

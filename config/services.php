@@ -51,6 +51,8 @@ return [
         'base_url' => env('KEYCLOAK_BASE_URL'),
         'realm' => env('KEYCLOAK_REALM', 'kanggo'),
         'client_id' => env('KEYCLOAK_CLIENT_ID', 'platform-fe'),
+        'verify_ssl' => env('KEYCLOAK_VERIFY_SSL', true),
+        'ca_bundle' => env('KEYCLOAK_CA_BUNDLE'),
     ],
 
 ];

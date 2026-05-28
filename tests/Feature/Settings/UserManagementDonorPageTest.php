@@ -3,6 +3,12 @@
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 
+beforeEach(function () {
+    config()->set([
+        'services.platform_service.base_url' => 'http://127.0.0.1:8011',
+    ]);
+});
+
 test('settings users donor page renders transplanted user management view', function () {
     Http::fake([
         'http://127.0.0.1:8011/api/v1/users' => Http::response([
@@ -79,6 +85,7 @@ test('settings users donor page can proxy create user submission', function () {
             && $request->method() === 'POST'
             && $request['name'] === 'Supply Owner'
             && $request['email'] === 'supply.owner@example.test'
+            && $request['password'] === 'password123'
             && $request['roles'][0] === 'Platform Operator';
     });
 });

@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
 class KeycloakOidcService
@@ -21,7 +22,8 @@ class KeycloakOidcService
 
     public function exchangeCode(string $code, string $codeVerifier, string $redirectUri): array
     {
-        return Http::asForm()
+        return $this->httpClient()
+            ->asForm()
             ->post($this->realmBaseUrl().'/protocol/openid-connect/token', [
                 'grant_type' => 'authorization_code',
                 'client_id' => config('services.keycloak.client_id'),
@@ -45,6 +47,30 @@ class KeycloakOidcService
         }
 
         return $this->realmBaseUrl().'/protocol/openid-connect/logout?'.http_build_query($query);
+    }
+
+    private function httpClient(): PendingRequest
+    {
+        $verify = $this->resolveVerifyOption();
+
+        if ($verify === true) {
+            return Http::acceptJson();
+        }
+
+        return Http::acceptJson()->withOptions([
+            'verify' => $verify,
+        ]);
+    }
+
+    private function resolveVerifyOption(): bool|string
+    {
+        if (! (bool) config('services.keycloak.verify_ssl', true)) {
+            return false;
+        }
+
+        $caBundle = trim((string) config('services.keycloak.ca_bundle', ''));
+
+        return $caBundle !== '' ? $caBundle : true;
     }
 
     private function realmBaseUrl(): string

@@ -48,8 +48,10 @@ test('callback exchanges authorization code and stores tokens in session', funct
                     'subject' => 'kc-user-1',
                     'email' => 'user@example.test',
                     'name' => 'Platform User',
+                    'realm_roles' => ['platform_operator'],
                 ],
-                'roles' => ['platform_operator'],
+                'roles' => ['super_admin'],
+                'permissions' => ['roles.manage', 'users.manage'],
             ],
         ]),
     ]);
@@ -67,6 +69,8 @@ test('callback exchanges authorization code and stores tokens in session', funct
     expect(session('platform_refresh_token'))->toBe('refresh-token-123');
     expect(auth()->check())->toBeTrue();
     expect(User::query()->where('auth_subject', 'keycloak:kc-user-1')->exists())->toBeTrue();
+    expect(User::query()->where('auth_subject', 'keycloak:kc-user-1')->firstOrFail()->role_snapshot)->toBe(['super_admin']);
+    expect(User::query()->where('auth_subject', 'keycloak:kc-user-1')->firstOrFail()->permission_snapshot)->toBe(['roles.manage', 'users.manage']);
 });
 
 test('logout clears session and redirects to keycloak logout endpoint', function () {

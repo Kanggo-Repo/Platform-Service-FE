@@ -3,6 +3,12 @@
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 
+beforeEach(function () {
+    config()->set([
+        'services.platform_service.base_url' => 'http://127.0.0.1:8011',
+    ]);
+});
+
 test('settings roles donor page renders transplanted role management view', function () {
     Http::fake([
         'http://127.0.0.1:8011/api/v1/roles' => Http::response([

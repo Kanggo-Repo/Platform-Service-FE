@@ -16,8 +16,7 @@ class UserManagementController extends Controller
 {
     public function __construct(
         private readonly PlatformServiceClient $platformServiceClient,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -76,6 +75,7 @@ class UserManagementController extends Controller
             $this->platformServiceClient->createUser($accessToken, [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
+                'password' => $validated['password'],
                 'roles' => array_values($validated['roles'] ?? []),
             ]);
         } catch (RuntimeException $exception) {
@@ -105,6 +105,7 @@ class UserManagementController extends Controller
             $this->platformServiceClient->updateUser($accessToken, $user, [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
+                'password' => $validated['password'] ?: null,
                 'roles' => array_values($validated['roles'] ?? []),
             ]);
         } catch (RuntimeException $exception) {
