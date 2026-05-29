@@ -959,21 +959,57 @@
                 return;
             }
 
-            function createToast(message, type = 'success', options = {}) {
-                const title = options.title || (type === 'error' ? 'Gagal' : 'Berhasil');
-                const duration = Math.max(1800, Number(options.duration || 3200));
-                const toast = document.createElement('div');
-                toast.className = `toast-notification ${type}`;
+            const titles = {
+                success: 'Sukses',
+                error: 'Gagal',
+                info: 'Info',
+                warning: 'Peringatan',
+            };
 
-                toast.innerHTML = `
-                    <div class="toast-icon"><i class="bi ${type === 'error' ? 'bi-exclamation-octagon-fill' : 'bi-check-circle-fill'}"></i></div>
-                    <div class="toast-content">
-                        <div class="toast-title">${title}</div>
-                        <div class="toast-message">${message}</div>
-                    </div>
-                    <button type="button" class="toast-close" aria-label="Tutup"></button>
-                    <div class="toast-progress"></div>
-                `;
+            function createToast(message, type = 'success', options = {}) {
+                if (!message) {
+                    return;
+                }
+
+                const pageDefaultDuration = Number(window.__TOAST_DEFAULT_DURATION__ || 0);
+                const duration = Number(options.duration) || pageDefaultDuration || 4200;
+                const title = options.title || titles[type] || 'Notifikasi';
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.dataset.type = type;
+                toast.style.setProperty('--toast-duration', `${duration}ms`);
+
+                const icon = document.createElement('span');
+                icon.className = 'toast-icon';
+                icon.setAttribute('aria-hidden', 'true');
+
+                const content = document.createElement('div');
+                content.className = 'toast-content';
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'toast-title';
+                titleEl.textContent = title;
+
+                const messageEl = document.createElement('div');
+                messageEl.className = 'toast-message';
+                messageEl.textContent = message;
+
+                content.appendChild(titleEl);
+                content.appendChild(messageEl);
+
+                const close = document.createElement('button');
+                close.type = 'button';
+                close.className = 'toast-close';
+                close.setAttribute('aria-label', 'Tutup');
+                close.textContent = '';
+
+                const progress = document.createElement('div');
+                progress.className = 'toast-progress';
+
+                toast.appendChild(icon);
+                toast.appendChild(content);
+                toast.appendChild(close);
+                toast.appendChild(progress);
 
                 container.appendChild(toast);
                 requestAnimationFrame(() => toast.classList.add('show'));
@@ -987,7 +1023,7 @@
                 };
 
                 const timeoutId = window.setTimeout(removeToast, duration);
-                toast.querySelector('.toast-close')?.addEventListener('click', () => {
+                close.addEventListener('click', () => {
                     window.clearTimeout(timeoutId);
                     removeToast();
                 });

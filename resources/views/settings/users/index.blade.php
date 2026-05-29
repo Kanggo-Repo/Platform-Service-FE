@@ -645,24 +645,13 @@
 <div class="um-viewport">
 <div class="um-shell">
 
-    @if (session('success'))
-        <div class="alert alert-success mb-0" style="border-radius: 18px; font-size: .84rem;">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger mb-0" style="border-radius: 18px; font-size: .84rem;">
-            {{ session('error') }}
-        </div>
-    @endif
-
     @if ($errors->any())
-        <div class="alert alert-danger mb-0" style="border-radius: 18px; font-size: .84rem;">
+        <script>
+            window.__TOASTS__ = Array.isArray(window.__TOASTS__) ? window.__TOASTS__ : [];
             @foreach ($errors->all() as $error)
-                <div>{{ $error }}</div>
+                window.__TOASTS__.push({ type: 'error', title: 'Gagal', message: @json($error), duration: 5200 });
             @endforeach
-        </div>
+        </script>
     @endif
 
     <section class="um-panel">
