@@ -6,7 +6,9 @@ use App\Http\Controllers\PlatformAdminController;
 use App\Http\Controllers\PlatformWorkspaceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleManagementController;
+use App\Http\Controllers\SkillPageController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\WorkerPageController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/workspace');
@@ -21,6 +23,8 @@ Route::middleware('platform.auth')->group(function () {
     Route::get('/workspace', [PlatformWorkspaceController::class, 'index'])->name('workspace.index');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/workers', [WorkerPageController::class, 'index'])->name('workers.index');
+    Route::get('/skills', [SkillPageController::class, 'index'])->name('skills.index');
     Route::redirect('/admin/roles', '/settings/roles')->name('admin.roles.index');
     Route::redirect('/admin/registration', '/settings/registration')->name('admin.registration.edit');
 

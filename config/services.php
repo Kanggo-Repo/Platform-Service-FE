@@ -54,6 +54,10 @@ return [
         'base_url' => env('CALCULATION_FE_BASE_URL'),
     ],
 
+    'calculation_service' => [
+        'base_url' => env('CALCULATION_SERVICE_BASE_URL', 'http://127.0.0.1:8000'),
+    ],
+
     'monolith_app' => [
         'base_url' => env('MONOLITH_BASE_URL', env('MONOLITH_AUTH_BASE_URL')),
     ],

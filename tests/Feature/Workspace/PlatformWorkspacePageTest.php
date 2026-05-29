@@ -9,6 +9,7 @@ beforeEach(function () {
         'services.supply_fe.base_url' => 'http://supplyfe.lvh.me:8009',
         'services.supply_service.base_url' => '',
         'services.calculation_fe.base_url' => 'http://calcfe.lvh.me:8001',
+        'services.calculation_service.base_url' => 'http://127.0.0.1:8000',
         'services.monolith_app.base_url' => 'http://legacy.lvh.me:8002',
     ]);
 });
@@ -227,6 +228,9 @@ test('workspace renders donor dashboard for active platform users', function () 
         ->assertSee('Manajemen Lantai')
         ->assertSee('Manajemen Area')
         ->assertSee('Manajemen Bidang')
+        ->assertSee('http://calcfe.lvh.me:8001/work-items', false)
+        ->assertSee('http://calcfe.lvh.me:8001/material-calculations/start', false)
+        ->assertSee('http://calcfe.lvh.me:8001/settings/work-floors', false)
         ->assertSee('data-material="brick"', false)
         ->assertSee('Platform Operator')
         ->assertSee('Distribusi Material')
@@ -323,7 +327,6 @@ test('workspace sidebar shows store warning badge from supply summary', function
                     'pending_services' => ['supply', 'calculation'],
                 ],
                 'roles' => ['platform_operator'],
-                'permissions' => ['stores.view'],
                 'navigation' => [
                     'preferred_route' => 'platform.dashboard',
                 ],
@@ -357,7 +360,6 @@ test('workspace sidebar shows store warning badge from supply summary', function
 
     $user = User::factory()->create([
         'name' => 'Platform User',
-        'permission_snapshot' => ['stores.view'],
     ]);
 
     $this->actingAs($user)->withSession([
@@ -366,4 +368,96 @@ test('workspace sidebar shows store warning badge from supply summary', function
         ->assertOk()
         ->assertSee('Toko')
         ->assertSee('3 toko memerlukan perhatian data lokasi');
+});
+
+test('workspace sidebar shows project draft badge from calculation drafts', function () {
+    Http::fake([
+        'http://127.0.0.1:8011/api/v1/me' => Http::response([
+            'data' => [
+                'identity' => [
+                    'subject' => 'kc-user-1',
+                    'email' => 'user@example.test',
+                    'name' => 'Platform User',
+                ],
+                'profile' => [
+                    'id' => 1,
+                    'status' => 'active',
+                    'display_name' => 'Platform User',
+                    'preferred_app' => 'platform',
+                ],
+                'access' => [
+                    'pending_access' => false,
+                    'allowed_services' => ['platform'],
+                    'blocked_services' => [],
+                    'pending_services' => ['supply', 'calculation'],
+                ],
+                'roles' => ['platform_operator'],
+                'navigation' => [
+                    'preferred_route' => 'platform.dashboard',
+                ],
+            ],
+        ]),
+        'http://127.0.0.1:8011/api/v1/navigation' => Http::response([
+            'data' => [
+                'services' => [],
+                'preferred_app' => 'platform',
+                'preferred_route' => 'platform.dashboard',
+                'pending_access' => false,
+                'allowed_services' => ['platform'],
+                'blocked_services' => [],
+                'pending_services' => ['supply', 'calculation'],
+            ],
+        ]),
+        'http://127.0.0.1:8011/api/v1/dashboard' => Http::response([
+            'data' => [
+                'summary' => [],
+                'chart' => ['labels' => [], 'data' => []],
+                'recent_activities' => [],
+                'service_matrix' => [],
+            ],
+        ]),
+        'http://127.0.0.1:8000/api/v1/calculation-drafts*' => Http::response([
+            'data' => [
+                ['public_id' => 'draft-001'],
+                ['public_id' => 'draft-002'],
+            ],
+        ]),
+    ]);
+
+    $user = User::factory()->create([
+        'name' => 'Platform User',
+    ]);
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+    ])->get(route('workspace.index'))
+        ->assertOk()
+        ->assertSee('Proyek')
+        ->assertSee('2 draft proyek aktif');
+});
+
+test('workers page renders platform-owned placeholder view', function () {
+    $user = User::factory()->create([
+        'name' => 'Platform User',
+    ]);
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+    ])->get(route('workers.index'))
+        ->assertOk()
+        ->assertSee('Under Development')
+        ->assertSee('Fitur ini sedang dalam tahap pengembangan');
+});
+
+test('skills page renders platform-owned placeholder view', function () {
+    $user = User::factory()->create([
+        'name' => 'Platform User',
+    ]);
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+    ])->get(route('skills.index'))
+        ->assertOk()
+        ->assertSee('Under Development')
+        ->assertSee('Fitur ini sedang dalam tahap pengembangan');
 });

@@ -12,6 +12,8 @@
         $routeTitleMap = [
             'workspace.*' => 'Dashboard',
             'profile.*' => 'Profile',
+            'workers.*' => 'Tukang',
+            'skills.*' => 'Keahlian',
             'platform.access.pending' => 'Akses Menunggu Persetujuan',
             'settings.*' => 'Pengaturan',
             'admin.roles.*' => 'Pengaturan',
@@ -480,15 +482,15 @@
                                 <div class="dropdown-sub-menu">
                                     <div class="dropdown-header">Pilih Material</div>
                                     <div class="dropdown-grid">
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=brick') }}" class="dropdown-item">Bata</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=cat') }}" class="dropdown-item">Cat</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=ceramic') }}" class="dropdown-item">Keramik</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=sand') }}" class="dropdown-item">Pasir</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=cement') }}" class="dropdown-item">Semen</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=steel') }}" class="dropdown-item">Besi</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=kasa_gypsum') }}" class="dropdown-item">Kasa Gypsum</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=paku_tembak') }}" class="dropdown-item">Paku Tembak</a>
-                                        <a href="{{ $supplyFeUrl('/materials?open_create=paku') }}" class="dropdown-item">Paku</a>
+                                        <a href="{{ $supplyFeUrl('/bricks/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Bata">Bata</a>
+                                        <a href="{{ $supplyFeUrl('/cats/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Cat">Cat</a>
+                                        <a href="{{ $supplyFeUrl('/ceramics/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Keramik">Keramik</a>
+                                        <a href="{{ $supplyFeUrl('/sands/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Pasir">Pasir</a>
+                                        <a href="{{ $supplyFeUrl('/cements/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Semen">Semen</a>
+                                        <a href="{{ $supplyFeUrl('/steels/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Besi">Besi</a>
+                                        <a href="{{ $supplyFeUrl('/kasa_gypsums/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Kasa Gypsum">Kasa Gypsum</a>
+                                        <a href="{{ $supplyFeUrl('/paku_tembaks/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Paku Tembak">Paku Tembak</a>
+                                        <a href="{{ $supplyFeUrl('/pakus/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Paku">Paku</a>
                                     </div>
                                 </div>
                             </div>
@@ -510,18 +512,23 @@
                 <div class="nav-dropdown-wrapper work-item-wrapper">
                     <button type="button" class="nav-link-btn" id="workItemDropdownToggle">
                         <i class="bi bi-building-gear"></i> Proyek
+                        @if(($sidebarProjectDraftCount ?? 0) > 0)
+                            <span class="sidebar-warning-count" title="{{ $sidebarProjectDraftCount }} draft proyek aktif">
+                                {{ $sidebarProjectDraftCount }}
+                            </span>
+                        @endif
                         <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                     </button>
 
                     <div class="nav-dropdown-menu" id="workItemDropdownMenu">
                         <div class="nav-dropdown-content">
                             <div class="dropdown-item-parent">
-                                <a href="{{ $monolithUrl('/work-items') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                <a href="{{ $calculationFeUrl('/work-items') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                     Lihat Daftar Item Pekerjaan
                                 </a>
                             </div>
                             <div class="dropdown-item-parent">
-                                <a href="{{ $calculationFeUrl('/material-calculations/create') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                <a href="{{ $calculationFeUrl('/material-calculations/start') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                     Hitung Item Pekerjaan Proyek
                                 </a>
                             </div>
@@ -535,11 +542,11 @@
                 </div>
             @endif
 
-            <a href="{{ $monolithUrl('/workers') }}" target="_self">
+            <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i> Tukang
             </a>
 
-            <a href="{{ $monolithUrl('/skills') }}" target="_self">
+            <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
                 <i class="bi bi-tools"></i> Keahlian
             </a>
 
@@ -573,17 +580,17 @@
                             @endif
                             @if($canSeeTaxonomy)
                                 <div class="dropdown-item-parent">
-                                    <a href="{{ $monolithUrl('/settings/work-floors') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    <a href="{{ $calculationFeUrl('/settings/work-floors') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                         Manajemen Lantai
                                     </a>
                                 </div>
                                 <div class="dropdown-item-parent">
-                                    <a href="{{ $monolithUrl('/settings/work-areas') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    <a href="{{ $calculationFeUrl('/settings/work-areas') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                         Manajemen Area
                                     </a>
                                 </div>
                                 <div class="dropdown-item-parent">
-                                    <a href="{{ $monolithUrl('/settings/work-fields') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                    <a href="{{ $calculationFeUrl('/settings/work-fields') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                         Manajemen Bidang
                                     </a>
                                 </div>
@@ -640,6 +647,24 @@
             <div class="confirm-actions">
                 <button type="button" class="confirm-btn cancel" id="confirm-cancel">Batal</button>
                 <button type="button" class="confirm-btn confirm" id="confirm-ok">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="remoteMaterialModal" class="floating-modal global-modal-layer">
+        <div class="floating-modal-backdrop" data-remote-material-close></div>
+        <div class="floating-modal-content" style="width: min(1280px, calc(100vw - 40px)); max-width: 1280px; height: min(92vh, 940px);">
+            <div class="floating-modal-header">
+                <h2 id="remoteMaterialModalTitle">Tambah Material</h2>
+                <button class="floating-modal-close" id="remoteMaterialCloseModal">&times;</button>
+            </div>
+            <div class="floating-modal-body" style="padding: 0; overflow: hidden; background: #fff;">
+                <iframe
+                    id="remoteMaterialModalFrame"
+                    title="Form Material Supply"
+                    src="about:blank"
+                    style="width: 100%; height: 76vh; min-height: 0; border: 0; background: #fff;">
+                </iframe>
             </div>
         </div>
     </div>
@@ -734,12 +759,72 @@
             const resetFilterBtn = document.getElementById('resetMaterialFilterNav');
             const materialsBaseUrl = @json($supplyFeUrl('/materials'));
             const sharedLastUrlCookie = 'supply_last_materials_url';
+            const remoteMaterialModal = document.getElementById('remoteMaterialModal');
+            const remoteMaterialFrame = document.getElementById('remoteMaterialModalFrame');
+            const remoteMaterialTitle = document.getElementById('remoteMaterialModalTitle');
+            const remoteMaterialCloseTargets = document.querySelectorAll('[data-remote-material-close], #remoteMaterialCloseModal');
 
             function readCookie(name) {
                 const pattern = new RegExp(`(?:^|; )${name.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&')}=([^;]*)`);
                 const match = document.cookie.match(pattern);
                 return match ? decodeURIComponent(match[1]) : '';
             }
+
+            function openRemoteMaterialModal(url, title) {
+                if (!remoteMaterialModal || !remoteMaterialFrame || !url || url === '#') {
+                    if (url && url !== '#') {
+                        window.location.href = url;
+                    }
+                    return;
+                }
+
+                remoteMaterialTitle.textContent = title || 'Tambah Material';
+                remoteMaterialFrame.src = url;
+                remoteMaterialModal.classList.add('active');
+                document.body.classList.add('modal-open');
+            }
+
+            function closeRemoteMaterialModal() {
+                if (!remoteMaterialModal || !remoteMaterialFrame) {
+                    return;
+                }
+
+                remoteMaterialModal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+                remoteMaterialFrame.style.height = '76vh';
+                window.setTimeout(() => {
+                    remoteMaterialFrame.src = 'about:blank';
+                }, 160);
+            }
+
+            remoteMaterialCloseTargets.forEach((target) => {
+                target?.addEventListener('click', closeRemoteMaterialModal);
+            });
+
+            document.querySelectorAll('.js-open-remote-material-modal').forEach((link) => {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    openRemoteMaterialModal(this.href, this.dataset.modalTitle || this.textContent.trim());
+                });
+            });
+
+            window.addEventListener('message', function (event) {
+                if (!remoteMaterialFrame || event.source !== remoteMaterialFrame.contentWindow) {
+                    return;
+                }
+
+                if (event.data?.type !== 'supply-material-embedded-height') {
+                    return;
+                }
+
+                const nextHeight = Number(event.data.height || 0);
+                if (!Number.isFinite(nextHeight) || nextHeight <= 0) {
+                    return;
+                }
+
+                const maxHeight = Math.max(window.innerHeight - 180, 420);
+                remoteMaterialFrame.style.height = `${Math.min(nextHeight, maxHeight)}px`;
+            });
 
             function isMaterialsIndexUrl(url) {
                 if (!url || materialsBaseUrl === '#') {
