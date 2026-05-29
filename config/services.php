@@ -43,6 +43,13 @@ return [
         'base_url' => env('SUPPLY_FE_BASE_URL'),
     ],
 
+    'supply_service' => [
+        'base_url' => env('SUPPLY_SERVICE_BASE_URL'),
+        'service_name' => env('SUPPLY_SERVICE_CALLER_NAME', 'platform-service-be'),
+        'token' => env('PLATFORM_SERVICE_BE_TOKEN', env('SUPPLY_FE_SERVICE_TOKEN')),
+        'verify_ssl' => env('SUPPLY_SERVICE_VERIFY_SSL', false),
+    ],
+
     'calculation_fe' => [
         'base_url' => env('CALCULATION_FE_BASE_URL'),
     ],

@@ -414,10 +414,19 @@
         $canSeeUsers = $sidebarGate->allowsAny($sidebarUser, [
             'users.view', 'users.create', 'users.update', 'users.delete', 'users.assign-roles', 'users.manage', 'settings.manage',
         ]);
+        $canSeeRecommendations = $sidebarGate->allowsAny($sidebarUser, [
+            'recommendations.view', 'recommendations.update', 'recommendations.manage', 'settings.manage',
+        ]);
+        $canSeeStoreSearchRadiusSettings = $sidebarGate->allowsAny($sidebarUser, [
+            'store-search-radius.view', 'store-search-radius.update', 'store-search-radius.manage', 'settings.manage',
+        ]);
+        $canSeeTaxonomy = $sidebarGate->allowsAny($sidebarUser, [
+            'work-taxonomy.view', 'work-taxonomy.create', 'work-taxonomy.update', 'work-taxonomy.delete', 'work-taxonomy.manage', 'settings.manage',
+        ]);
         $canSeeRegistration = $sidebarGate->allowsAny($sidebarUser, [
             'users.update', 'users.manage', 'settings.manage',
         ]);
-        $canSeeSettings = $canSeeRoles || $canSeeUsers || $canSeeRegistration;
+        $canSeeSettings = $canSeeRoles || $canSeeUsers || $canSeeRecommendations || $canSeeStoreSearchRadiusSettings || $canSeeTaxonomy || $canSeeRegistration;
         $isSettingsRoute = request()->routeIs('settings.*', 'admin.roles.*', 'admin.registration.*');
     @endphp
     <aside class="sidebar-nav" id="sidebarNav">
@@ -471,15 +480,15 @@
                                 <div class="dropdown-sub-menu">
                                     <div class="dropdown-header">Pilih Material</div>
                                     <div class="dropdown-grid">
-                                        <a href="{{ $supplyFeUrl('/bricks/create') }}" class="dropdown-item">Bata</a>
-                                        <a href="{{ $supplyFeUrl('/cats/create') }}" class="dropdown-item">Cat</a>
-                                        <a href="{{ $supplyFeUrl('/ceramics/create') }}" class="dropdown-item">Keramik</a>
-                                        <a href="{{ $supplyFeUrl('/sands/create') }}" class="dropdown-item">Pasir</a>
-                                        <a href="{{ $supplyFeUrl('/cements/create') }}" class="dropdown-item">Semen</a>
-                                        <a href="{{ $supplyFeUrl('/steels/create') }}" class="dropdown-item">Besi</a>
-                                        <a href="{{ $supplyFeUrl('/kasa_gypsums/create') }}" class="dropdown-item">Kasa Gypsum</a>
-                                        <a href="{{ $supplyFeUrl('/paku_tembaks/create') }}" class="dropdown-item">Paku Tembak</a>
-                                        <a href="{{ $supplyFeUrl('/pakus/create') }}" class="dropdown-item">Paku</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=brick') }}" class="dropdown-item">Bata</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=cat') }}" class="dropdown-item">Cat</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=ceramic') }}" class="dropdown-item">Keramik</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=sand') }}" class="dropdown-item">Pasir</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=cement') }}" class="dropdown-item">Semen</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=steel') }}" class="dropdown-item">Besi</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=kasa_gypsum') }}" class="dropdown-item">Kasa Gypsum</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=paku_tembak') }}" class="dropdown-item">Paku Tembak</a>
+                                        <a href="{{ $supplyFeUrl('/materials?open_create=paku') }}" class="dropdown-item">Paku</a>
                                     </div>
                                 </div>
                             </div>
@@ -489,6 +498,11 @@
 
                 <a href="{{ $supplyFeUrl('/stores') }}" target="_self">
                     <i class="bi bi-shop"></i> Toko
+                    @if(($sidebarStoresMissingMapCount ?? 0) > 0)
+                        <span class="sidebar-warning-count" title="{{ $sidebarStoresMissingMapCount }} toko memerlukan perhatian data lokasi">
+                            {{ $sidebarStoresMissingMapCount }}
+                        </span>
+                    @endif
                 </a>
             @endif
 
@@ -502,23 +516,13 @@
                     <div class="nav-dropdown-menu" id="workItemDropdownMenu">
                         <div class="nav-dropdown-content">
                             <div class="dropdown-item-parent">
-                                <a href="{{ $calculationFeUrl('/material-calculations/log') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                <a href="{{ $monolithUrl('/work-items') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                     Lihat Daftar Item Pekerjaan
                                 </a>
                             </div>
                             <div class="dropdown-item-parent">
                                 <a href="{{ $calculationFeUrl('/material-calculations/create') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                     Hitung Item Pekerjaan Proyek
-                                </a>
-                            </div>
-                            <div class="dropdown-item-parent">
-                                <a href="{{ $calculationFeUrl('/material-calculations/drafts') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
-                                    Draft Hitungan Proyek
-                                </a>
-                            </div>
-                            <div class="dropdown-item-parent">
-                                <a href="{{ $calculationFeUrl('/material-calculations/log') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
-                                    Log Hitungan Proyek
                                 </a>
                             </div>
                             <div class="dropdown-item-parent">
@@ -553,34 +557,50 @@
 
                     <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
                         <div class="nav-dropdown-content">
-                            @if($calculationFeBaseUrl !== '')
+                            @if($calculationFeBaseUrl !== '' && $canSeeRecommendations)
                                 <div class="dropdown-item-parent">
                                     <a href="{{ $calculationFeUrl('/settings/recommendations') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                         Manajemen Filter Preferensi
                                     </a>
                                 </div>
                             @endif
-                            @if($supplyFeBaseUrl !== '')
+                            @if($supplyFeBaseUrl !== '' && $canSeeStoreSearchRadiusSettings)
                                 <div class="dropdown-item-parent">
                                     <a href="{{ $supplyFeUrl('/settings/store-search-radius') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
                                         Radius Pencarian Toko
                                     </a>
                                 </div>
                             @endif
+                            @if($canSeeTaxonomy)
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ $monolithUrl('/settings/work-floors') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Manajemen Lantai
+                                    </a>
+                                </div>
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ $monolithUrl('/settings/work-areas') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Manajemen Area
+                                    </a>
+                                </div>
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ $monolithUrl('/settings/work-fields') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Manajemen Bidang
+                                    </a>
+                                </div>
+                            @endif
                             @if($canSeeUsers)
-                                <a href="{{ route('settings.users.index') }}" class="dropdown-item {{ request()->routeIs('settings.users.*') ? 'active' : '' }}">
-                                    <i class="bi bi-people"></i> Manajemen User
-                                </a>
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.users.index') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none {{ request()->routeIs('settings.users.*') ? 'active' : '' }}" role="button">
+                                        Manajemen User
+                                    </a>
+                                </div>
                             @endif
                             @if($canSeeRoles)
-                                <a href="{{ route('settings.roles.index') }}" class="dropdown-item {{ request()->routeIs('settings.roles.*') ? 'active' : '' }}">
-                                    <i class="bi bi-shield-lock"></i> Manajemen Role
-                                </a>
-                            @endif
-                            @if($canSeeRegistration)
-                                <a href="{{ route('settings.registration.edit') }}" class="dropdown-item {{ request()->routeIs('settings.registration.*', 'admin.registration.*') ? 'active' : '' }}">
-                                    <i class="bi bi-person-plus"></i> Status Registrasi
-                                </a>
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.roles.index') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none {{ request()->routeIs('settings.roles.*') ? 'active' : '' }}" role="button">
+                                        Manajemen Role
+                                    </a>
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -708,22 +728,69 @@
             initializeDropdown('workItemDropdownToggle', 'workItemDropdownMenu');
             initializeDropdown('settingsDropdownToggle', 'settingsDropdownMenu');
 
+            const materialNavLink = document.getElementById('materialNavLink');
             const navToggles = document.querySelectorAll('.nav-material-toggle');
             const applyFilterBtn = document.getElementById('applyMaterialFilter');
             const resetFilterBtn = document.getElementById('resetMaterialFilterNav');
             const materialsBaseUrl = @json($supplyFeUrl('/materials'));
-            const storageKey = 'materials_index_filter_preferences';
+            const sharedLastUrlCookie = 'supply_last_materials_url';
 
-            if (navToggles.length > 0 && applyFilterBtn && resetFilterBtn) {
-                let savedFilter = { selected: [] };
+            function readCookie(name) {
+                const pattern = new RegExp(`(?:^|; )${name.replace(/[$()*+.?[\\\]^{|}]/g, '\\$&')}=([^;]*)`);
+                const match = document.cookie.match(pattern);
+                return match ? decodeURIComponent(match[1]) : '';
+            }
 
-                try {
-                    savedFilter = JSON.parse(localStorage.getItem(storageKey)) || { selected: [] };
-                } catch (error) {
-                    savedFilter = { selected: [] };
+            function isMaterialsIndexUrl(url) {
+                if (!url || materialsBaseUrl === '#') {
+                    return false;
                 }
 
-                const selectedSet = new Set(Array.isArray(savedFilter.selected) ? savedFilter.selected : []);
+                try {
+                    const parsed = new URL(url, window.location.origin);
+                    const base = new URL(materialsBaseUrl, window.location.origin);
+
+                    return parsed.origin === base.origin && parsed.pathname === base.pathname;
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            materialNavLink?.addEventListener('click', function (event) {
+                if (materialsBaseUrl === '#') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const lastUrl = readCookie(sharedLastUrlCookie);
+                if (isMaterialsIndexUrl(lastUrl)) {
+                    window.location.href = lastUrl;
+                    return;
+                }
+
+                window.location.href = materialsBaseUrl;
+            });
+
+            if (navToggles.length > 0 && applyFilterBtn && resetFilterBtn) {
+                const selectedSet = new Set(
+                    readCookie(sharedLastUrlCookie)
+                        ? (() => {
+                            try {
+                                const parsed = new URL(readCookie(sharedLastUrlCookie), window.location.origin);
+                                const repeated = parsed.searchParams.getAll('materials[]');
+                                const csv = (parsed.searchParams.get('materials') || '')
+                                    .split(',')
+                                    .map((value) => value.trim())
+                                    .filter(Boolean);
+
+                                return [...repeated, ...csv];
+                            } catch (error) {
+                                return [];
+                            }
+                        })()
+                        : []
+                );
 
                 navToggles.forEach((toggle) => {
                     const wrapper = toggle.closest('.dropdown-item');
@@ -740,16 +807,12 @@
                         .filter((toggle) => toggle.checked)
                         .map((toggle) => toggle.dataset.material);
 
-                    localStorage.setItem(storageKey, JSON.stringify({ selected }));
-
-                    if (selected.length === 0) {
-                        window.location.href = materialsBaseUrl;
-                        return;
+                    const targetUrl = new URL(materialsBaseUrl, window.location.origin);
+                    if (selected.length > 0) {
+                        targetUrl.searchParams.set('materials', selected.join(','));
+                        targetUrl.searchParams.set('tab', selected[0]);
                     }
-
-                    const params = new URLSearchParams();
-                    selected.forEach((material) => params.append('materials[]', material));
-                    window.location.href = `${materialsBaseUrl}?${params.toString()}`;
+                    window.location.href = targetUrl.toString();
                 });
 
                 resetFilterBtn.addEventListener('click', function () {
@@ -757,7 +820,6 @@
                         toggle.checked = false;
                         toggle.closest('.dropdown-item')?.classList.remove('checked');
                     });
-                    localStorage.removeItem(storageKey);
                     window.location.href = materialsBaseUrl;
                 });
             }

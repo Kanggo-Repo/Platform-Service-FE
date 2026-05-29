@@ -7,6 +7,7 @@ beforeEach(function () {
     config()->set([
         'services.platform_service.base_url' => 'http://127.0.0.1:8011',
         'services.supply_fe.base_url' => 'http://supplyfe.lvh.me:8009',
+        'services.supply_service.base_url' => '',
         'services.calculation_fe.base_url' => 'http://calcfe.lvh.me:8001',
         'services.monolith_app.base_url' => 'http://legacy.lvh.me:8002',
     ]);
@@ -223,10 +224,15 @@ test('workspace renders donor dashboard for active platform users', function () 
         ->assertSee('Keahlian')
         ->assertSee('Manajemen User')
         ->assertSee('Manajemen Role')
-        ->assertSee('Status Registrasi')
+        ->assertSee('Manajemen Lantai')
+        ->assertSee('Manajemen Area')
+        ->assertSee('Manajemen Bidang')
         ->assertSee('data-material="brick"', false)
         ->assertSee('Platform Operator')
-        ->assertSee('Distribusi Material');
+        ->assertSee('Distribusi Material')
+        ->assertDontSee('Draft Hitungan Proyek')
+        ->assertDontSee('Log Hitungan Proyek')
+        ->assertDontSee('Status Registrasi');
 });
 
 test('workspace resets session and redirects to login when dashboard request fails', function () {
@@ -291,4 +297,73 @@ test('workspace resets session and redirects to login when dashboard request fai
             'platform_id_token',
             'platform_token_expires_at',
         ]);
+});
+
+test('workspace sidebar shows store warning badge from supply summary', function () {
+    config()->set('services.supply_service.base_url', 'http://127.0.0.1:8008');
+
+    Http::fake([
+        'http://127.0.0.1:8011/api/v1/me' => Http::response([
+            'data' => [
+                'identity' => [
+                    'subject' => 'kc-user-1',
+                    'email' => 'user@example.test',
+                    'name' => 'Platform User',
+                ],
+                'profile' => [
+                    'id' => 1,
+                    'status' => 'active',
+                    'display_name' => 'Platform User',
+                    'preferred_app' => 'platform',
+                ],
+                'access' => [
+                    'pending_access' => false,
+                    'allowed_services' => ['platform'],
+                    'blocked_services' => [],
+                    'pending_services' => ['supply', 'calculation'],
+                ],
+                'roles' => ['platform_operator'],
+                'permissions' => ['stores.view'],
+                'navigation' => [
+                    'preferred_route' => 'platform.dashboard',
+                ],
+            ],
+        ]),
+        'http://127.0.0.1:8011/api/v1/navigation' => Http::response([
+            'data' => [
+                'services' => [],
+                'preferred_app' => 'platform',
+                'preferred_route' => 'platform.dashboard',
+                'pending_access' => false,
+                'allowed_services' => ['platform'],
+                'blocked_services' => [],
+                'pending_services' => ['supply', 'calculation'],
+            ],
+        ]),
+        'http://127.0.0.1:8011/api/v1/dashboard' => Http::response([
+            'data' => [
+                'summary' => [],
+                'chart' => ['labels' => [], 'data' => []],
+                'recent_activities' => [],
+                'service_matrix' => [],
+            ],
+        ]),
+        'http://127.0.0.1:8008/api/v1/stores/sidebar-summary' => Http::response([
+            'data' => [
+                'stores_missing_map_count' => 3,
+            ],
+        ]),
+    ]);
+
+    $user = User::factory()->create([
+        'name' => 'Platform User',
+        'permission_snapshot' => ['stores.view'],
+    ]);
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+    ])->get(route('workspace.index'))
+        ->assertOk()
+        ->assertSee('Toko')
+        ->assertSee('3 toko memerlukan perhatian data lokasi');
 });
