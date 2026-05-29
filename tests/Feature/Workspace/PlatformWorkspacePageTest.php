@@ -62,7 +62,10 @@ test('workspace redirects pending access users to access pending page', function
         ]),
     ]);
 
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['dashboard.view'],
+    ]);
 
     $this->actingAs($user)->withSession([
         'platform_access_token' => 'access-token-123',
@@ -73,6 +76,8 @@ test('workspace redirects pending access users to access pending page', function
 test('access pending page renders transplanted pending access view', function () {
     $user = User::factory()->create([
         'name' => 'Platform User',
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['dashboard.view'],
     ]);
 
     $this->actingAs($user)
@@ -126,7 +131,10 @@ test('workspace performs one-time handoff to preferred supply app after login', 
         ]),
     ]);
 
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['dashboard.view'],
+    ]);
 
     $this->actingAs($user)->withSession([
         'platform_access_token' => 'access-token-123',
@@ -211,6 +219,8 @@ test('workspace renders donor dashboard for active platform users', function () 
 
     $user = User::factory()->create([
         'name' => 'Platform User',
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['dashboard.view'],
     ]);
 
     $this->actingAs($user)->withSession([
@@ -359,6 +369,8 @@ test('workspace sidebar shows store warning badge from supply summary', function
 
     $user = User::factory()->create([
         'name' => 'Platform User',
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['dashboard.view'],
     ]);
 
     $this->actingAs($user)->withSession([
@@ -425,6 +437,8 @@ test('workspace sidebar shows project draft badge from calculation drafts', func
 
     $user = User::factory()->create([
         'name' => 'Platform User',
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['dashboard.view'],
     ]);
 
     $this->actingAs($user)->withSession([
@@ -438,6 +452,8 @@ test('workspace sidebar shows project draft badge from calculation drafts', func
 test('workers page renders platform-owned placeholder view', function () {
     $user = User::factory()->create([
         'name' => 'Platform User',
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['workers.view'],
     ]);
 
     $this->actingAs($user)->withSession([
@@ -451,7 +467,77 @@ test('workers page renders platform-owned placeholder view', function () {
 test('skills page renders platform-owned placeholder view', function () {
     $user = User::factory()->create([
         'name' => 'Platform User',
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['skills.view'],
     ]);
+
+    test('workspace sidebar hides unauthorized modules for limited purchasing role', function () {
+        Http::fake([
+            'http://127.0.0.1:8011/api/v1/me' => Http::response([
+                'data' => [
+                    'identity' => [
+                        'subject' => 'kc-user-1',
+                        'email' => 'purchasing@example.test',
+                        'name' => 'Purchasing User',
+                    ],
+                    'profile' => [
+                        'id' => 7,
+                        'status' => 'active',
+                        'display_name' => 'Purchasing User',
+                        'preferred_app' => 'platform',
+                    ],
+                    'access' => [
+                        'pending_access' => false,
+                        'allowed_services' => ['platform'],
+                        'blocked_services' => ['supply', 'calculation'],
+                        'pending_services' => [],
+                    ],
+                    'roles' => ['purchasing'],
+                    'navigation' => [
+                        'preferred_route' => 'platform.dashboard',
+                    ],
+                ],
+            ]),
+            'http://127.0.0.1:8011/api/v1/navigation' => Http::response([
+                'data' => [
+                    'services' => [],
+                    'preferred_app' => 'platform',
+                    'preferred_route' => 'platform.dashboard',
+                    'pending_access' => false,
+                    'allowed_services' => ['platform'],
+                    'blocked_services' => ['supply', 'calculation'],
+                    'pending_services' => [],
+                ],
+            ]),
+            'http://127.0.0.1:8011/api/v1/dashboard' => Http::response([
+                'data' => [
+                    'summary' => [],
+                    'chart' => ['labels' => [], 'data' => []],
+                    'recent_activities' => [],
+                    'service_matrix' => [],
+                ],
+            ]),
+        ]);
+
+        $user = User::factory()->create([
+            'name' => 'Purchasing User',
+            'role_snapshot' => ['purchasing'],
+            'permission_snapshot' => ['dashboard.view', 'stores.view'],
+        ]);
+
+        $this->actingAs($user)->withSession([
+            'platform_access_token' => 'access-token-123',
+        ])->get(route('workspace.index'))
+            ->assertOk()
+            ->assertSee('Dashboard')
+            ->assertSee('Toko')
+            ->assertDontSee('Material')
+            ->assertDontSee('Proyek')
+            ->assertDontSee('Tukang')
+            ->assertDontSee('Keahlian')
+            ->assertDontSee('Satuan')
+            ->assertDontSee('Pengaturan');
+    });
 
     $this->actingAs($user)->withSession([
         'platform_access_token' => 'access-token-123',

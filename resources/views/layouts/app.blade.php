@@ -406,6 +406,36 @@
         $sidebarUser = auth()->user();
         $sidebarGate = app(\App\Support\Auth\PlatformPermissionGate::class);
         $canSeeDashboard = $sidebarUser !== null;
+        $canSeeMaterials = $sidebarGate->allowsAny($sidebarUser, [
+            'materials.view', 'materials.create', 'materials.update', 'materials.delete', 'materials.import', 'materials.export',
+            'materials.recycle-bin.view', 'materials.recycle-bin.restore', 'materials.recycle-bin.delete', 'materials.manage',
+        ]);
+        $canCreateMaterials = $sidebarGate->allowsAny($sidebarUser, [
+            'materials.create', 'materials.update', 'materials.manage',
+        ]);
+        $canSeeStores = $sidebarGate->allowsAny($sidebarUser, [
+            'stores.view', 'stores.create', 'stores.update', 'stores.delete', 'stores.manage',
+        ]);
+        $canSeeWorkItems = $sidebarGate->allowsAny($sidebarUser, [
+            'work-items.view', 'work-items.create', 'work-items.update', 'work-items.delete', 'work-items.manage',
+            'projects.view', 'projects.manage',
+        ]);
+        $canCreateWorkItems = $sidebarGate->allowsAny($sidebarUser, [
+            'work-items.create', 'work-items.manage', 'projects.manage',
+        ]);
+        $canSeeCalculations = $sidebarGate->allowsAny($sidebarUser, [
+            'calculations.view', 'calculations.create', 'calculations.update', 'calculations.delete', 'calculations.export', 'calculations.manage',
+            'projects.view', 'projects.manage',
+        ]);
+        $canCreateCalculations = $sidebarGate->allowsAny($sidebarUser, [
+            'calculations.create', 'calculations.manage', 'projects.manage',
+        ]);
+        $canSeeProjects = $canSeeWorkItems || $canSeeCalculations;
+        $canSeeWorkers = $sidebarGate->allows($sidebarUser, 'workers.view');
+        $canSeeSkills = $sidebarGate->allows($sidebarUser, 'skills.view');
+        $canSeeUnits = $sidebarGate->allowsAny($sidebarUser, [
+            'units.view', 'units.create', 'units.update', 'units.delete', 'units.manage',
+        ]);
         $canSeeRoles = $sidebarGate->allowsAny($sidebarUser, [
             'roles.view', 'roles.create', 'roles.update', 'roles.delete', 'roles.manage', 'settings.manage',
         ]);
@@ -435,7 +465,7 @@
                 </a>
             @endif
 
-            @if($supplyFeBaseUrl !== '')
+            @if($supplyFeBaseUrl !== '' && ($canSeeMaterials || $canCreateMaterials))
                 <div class="nav-dropdown-wrapper material-wrapper">
                     <a href="{{ $supplyFeUrl('/materials') }}" class="nav-link-btn" id="materialNavLink">
                         <i class="bi bi-box-seam"></i> Material <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
@@ -443,57 +473,63 @@
 
                     <div class="nav-dropdown-menu" id="materialDropdownMenu">
                         <div class="nav-dropdown-content">
-                            <div class="dropdown-item-parent">
-                                <div class="dropdown-item-trigger" tabindex="0" role="button">
-                                    Lihat Material
-                                    <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
-                                </div>
-
-                                <div class="dropdown-sub-menu">
-                                    <div class="dropdown-header">Pilih Material</div>
-                                    <div class="dropdown-grid">
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="steel"> Besi</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="kasa_gypsum"> Kasa Gypsum</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="paku_tembak"> Paku Tembak</label>
-                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="paku"> Paku</label>
+                            @if($canSeeMaterials)
+                                <div class="dropdown-item-parent">
+                                    <div class="dropdown-item-trigger" tabindex="0" role="button">
+                                        Lihat Material
+                                        <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                                     </div>
-                                    <div class="nav-material-actions">
-                                        <button type="button" id="applyMaterialFilter" class="btn btn-primary nav-material-apply">Terapkan Filter</button>
-                                        <button type="button" id="resetMaterialFilterNav" class="btn btn-primary nav-material-reset">Reset</button>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="dropdown-item-parent">
-                                <div class="dropdown-item-trigger" tabindex="0" role="button">
-                                    Tambah Material
-                                    <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
-                                </div>
-
-                                <div class="dropdown-sub-menu">
-                                    <div class="dropdown-header">Pilih Material</div>
-                                    <div class="dropdown-grid">
-                                        <a href="{{ $supplyFeUrl('/bricks/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Bata">Bata</a>
-                                        <a href="{{ $supplyFeUrl('/cats/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Cat">Cat</a>
-                                        <a href="{{ $supplyFeUrl('/ceramics/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Keramik">Keramik</a>
-                                        <a href="{{ $supplyFeUrl('/sands/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Pasir">Pasir</a>
-                                        <a href="{{ $supplyFeUrl('/cements/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Semen">Semen</a>
-                                        <a href="{{ $supplyFeUrl('/steels/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Besi">Besi</a>
-                                        <a href="{{ $supplyFeUrl('/kasa_gypsums/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Kasa Gypsum">Kasa Gypsum</a>
-                                        <a href="{{ $supplyFeUrl('/paku_tembaks/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Paku Tembak">Paku Tembak</a>
-                                        <a href="{{ $supplyFeUrl('/pakus/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Paku">Paku</a>
+                                    <div class="dropdown-sub-menu">
+                                        <div class="dropdown-header">Pilih Material</div>
+                                        <div class="dropdown-grid">
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="steel"> Besi</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="kasa_gypsum"> Kasa Gypsum</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="paku_tembak"> Paku Tembak</label>
+                                            <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="paku"> Paku</label>
+                                        </div>
+                                        <div class="nav-material-actions">
+                                            <button type="button" id="applyMaterialFilter" class="btn btn-primary nav-material-apply">Terapkan Filter</button>
+                                            <button type="button" id="resetMaterialFilterNav" class="btn btn-primary nav-material-reset">Reset</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            @endif
+
+                            @if($canCreateMaterials)
+                                <div class="dropdown-item-parent">
+                                    <div class="dropdown-item-trigger" tabindex="0" role="button">
+                                        Tambah Material
+                                        <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                    </div>
+
+                                    <div class="dropdown-sub-menu">
+                                        <div class="dropdown-header">Pilih Material</div>
+                                        <div class="dropdown-grid">
+                                            <a href="{{ $supplyFeUrl('/bricks/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Bata">Bata</a>
+                                            <a href="{{ $supplyFeUrl('/cats/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Cat">Cat</a>
+                                            <a href="{{ $supplyFeUrl('/ceramics/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Keramik">Keramik</a>
+                                            <a href="{{ $supplyFeUrl('/sands/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Pasir">Pasir</a>
+                                            <a href="{{ $supplyFeUrl('/cements/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Semen">Semen</a>
+                                            <a href="{{ $supplyFeUrl('/steels/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Besi">Besi</a>
+                                            <a href="{{ $supplyFeUrl('/kasa_gypsums/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Kasa Gypsum">Kasa Gypsum</a>
+                                            <a href="{{ $supplyFeUrl('/paku_tembaks/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Paku Tembak">Paku Tembak</a>
+                                            <a href="{{ $supplyFeUrl('/pakus/create?embedded=1') }}" class="dropdown-item js-open-remote-material-modal" data-modal-title="Tambah Paku">Paku</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
+            @endif
 
+            @if($supplyFeBaseUrl !== '' && $canSeeStores)
                 <a href="{{ $supplyFeUrl('/stores') }}" target="_self">
                     <i class="bi bi-shop"></i> Toko
                     @if(($sidebarStoresMissingMapCount ?? 0) > 0)
@@ -504,7 +540,7 @@
                 </a>
             @endif
 
-            @if($calculationFeBaseUrl !== '')
+            @if($calculationFeBaseUrl !== '' && $canSeeProjects)
                 <div class="nav-dropdown-wrapper work-item-wrapper">
                     <button type="button" class="nav-link-btn" id="workItemDropdownToggle">
                         <i class="bi bi-building-gear"></i> Proyek
@@ -518,35 +554,45 @@
 
                     <div class="nav-dropdown-menu" id="workItemDropdownMenu">
                         <div class="nav-dropdown-content">
-                            <div class="dropdown-item-parent">
-                                <a href="{{ $calculationFeUrl('/work-items') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
-                                    Lihat Daftar Item Pekerjaan
-                                </a>
-                            </div>
-                            <div class="dropdown-item-parent">
-                                <a href="{{ $calculationFeUrl('/material-calculations/start') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
-                                    Hitung Item Pekerjaan Proyek
-                                </a>
-                            </div>
-                            <div class="dropdown-item-parent">
-                                <a href="https://docs.google.com/spreadsheets/d/1tsEQ3a4duHw2AROxsbHaz41n3EiwoFQEpqmWc5XdMP4/edit?usp=sharing" target="_blank" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
-                                    Tambah Item Pekerjaan
-                                </a>
-                            </div>
+                            @if($canSeeWorkItems)
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ $calculationFeUrl('/work-items') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Lihat Daftar Item Pekerjaan
+                                    </a>
+                                </div>
+                            @endif
+                            @if($canCreateCalculations)
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ $calculationFeUrl('/material-calculations/start') }}" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Hitung Item Pekerjaan Proyek
+                                    </a>
+                                </div>
+                            @endif
+                            @if($canCreateWorkItems)
+                                <div class="dropdown-item-parent">
+                                    <a href="https://docs.google.com/spreadsheets/d/1tsEQ3a4duHw2AROxsbHaz41n3EiwoFQEpqmWc5XdMP4/edit?usp=sharing" target="_blank" class="dropdown-item-trigger d-flex align-items-center text-decoration-none" role="button">
+                                        Tambah Item Pekerjaan
+                                    </a>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
             @endif
 
-            <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
-                <i class="bi bi-people"></i> Tukang
-            </a>
+            @if($canSeeWorkers)
+                <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
+                    <i class="bi bi-people"></i> Tukang
+                </a>
+            @endif
 
-            <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
-                <i class="bi bi-tools"></i> Keahlian
-            </a>
+            @if($canSeeSkills)
+                <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
+                    <i class="bi bi-tools"></i> Keahlian
+                </a>
+            @endif
 
-            @if($supplyFeBaseUrl !== '')
+            @if($supplyFeBaseUrl !== '' && $canSeeUnits)
                 <a href="{{ $supplyFeUrl('/units') }}" target="_self">
                     <i class="bi bi-rulers"></i> Satuan
                 </a>
@@ -972,6 +1018,26 @@
                     console.error('Failed to parse pending toast', error);
                 }
                 sessionStorage.removeItem('pendingToast');
+            }
+
+            const url = new URL(window.location.href);
+            const accessNotice = url.searchParams.get('access_notice');
+            if (accessNotice === 'service-denied') {
+                const requestedService = url.searchParams.get('requested_service') || '';
+                const requestedServiceLabel = ({
+                    platform: 'Platform',
+                    supply: 'Supply',
+                    calculation: 'Calculation',
+                })[requestedService] || 'tujuan';
+
+                createToast(`Anda tidak memiliki akses ke service ${requestedServiceLabel}.`, 'error', {
+                    title: 'Akses Ditolak',
+                });
+
+                url.searchParams.delete('access_notice');
+                url.searchParams.delete('requested_service');
+                const nextQuery = url.searchParams.toString();
+                window.history.replaceState({}, document.title, `${url.pathname}${nextQuery ? `?${nextQuery}` : ''}${url.hash}`);
             }
         })();
     </script>

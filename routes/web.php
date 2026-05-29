@@ -23,8 +23,8 @@ Route::middleware('platform.auth')->group(function () {
     Route::get('/workspace', [PlatformWorkspaceController::class, 'index'])->name('workspace.index');
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('/workers', [WorkerPageController::class, 'index'])->name('workers.index');
-    Route::get('/skills', [SkillPageController::class, 'index'])->name('skills.index');
+    Route::get('/workers', [WorkerPageController::class, 'index'])->middleware('platform.permission:workers.view')->name('workers.index');
+    Route::get('/skills', [SkillPageController::class, 'index'])->middleware('platform.permission:skills.view')->name('skills.index');
     Route::redirect('/admin/roles', '/settings/roles')->name('admin.roles.index');
     Route::redirect('/admin/registration', '/settings/registration')->name('admin.registration.edit');
 

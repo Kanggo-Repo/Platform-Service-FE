@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePlatformPermission;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 
@@ -10,7 +11,10 @@ beforeEach(function () {
 });
 
 test('legacy admin roles route redirects to donor settings roles page', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['users.update'],
+    ]);
 
     $this->actingAs($user)->withSession([
         'platform_access_token' => 'access-token-123',
@@ -30,7 +34,10 @@ test('registration settings page renders current toggle state', function () {
         ]),
     ]);
 
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'role_snapshot' => ['platform_operator'],
+        'permission_snapshot' => ['users.update'],
+    ]);
 
     $this->actingAs($user)->withSession([
         'platform_access_token' => 'access-token-123',
@@ -42,6 +49,8 @@ test('registration settings page renders current toggle state', function () {
 });
 
 test('registration settings update proxies to platform service and redirects back', function () {
+    $this->withoutMiddleware(EnsurePlatformPermission::class);
+
     Http::fake([
         'http://127.0.0.1:8011/api/v1/settings/registration' => Http::response([
             'data' => [
