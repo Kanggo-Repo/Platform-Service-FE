@@ -10,7 +10,6 @@ beforeEach(function () {
         'services.supply_service.base_url' => '',
         'services.calculation_fe.base_url' => 'http://calcfe.lvh.me:8001',
         'services.calculation_service.base_url' => 'http://127.0.0.1:8000',
-        'services.monolith_app.base_url' => 'http://legacy.lvh.me:8002',
     ]);
 });
 

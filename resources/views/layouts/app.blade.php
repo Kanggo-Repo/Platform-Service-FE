@@ -37,10 +37,6 @@
         $calculationFeUrl = static fn (string $path = ''): string => $calculationFeBaseUrl !== ''
             ? $calculationFeBaseUrl.'/'.ltrim($path, '/')
             : '#';
-        $monolithBaseUrl = rtrim((string) config('services.monolith_app.base_url', ''), '/');
-        $monolithUrl = static fn (string $path = ''): string => $monolithBaseUrl !== ''
-            ? $monolithBaseUrl.'/'.ltrim($path, '/')
-            : '#';
     @endphp
     <title>{{ $topbarTitle }}</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
