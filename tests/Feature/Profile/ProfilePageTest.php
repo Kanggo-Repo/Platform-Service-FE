@@ -107,3 +107,45 @@ test('profile update proxies keycloak-style name parts to platform service and r
 
     expect($user->fresh()->name)->toBe('Updated User');
 });
+
+test('profile page keeps blank keycloak last name blank instead of falling back to stale local name', function () {
+    Http::fake([
+        'http://127.0.0.1:8011/api/v1/profile' => Http::response([
+            'data' => [
+                'id' => 1,
+                'name' => 'Platform',
+                'full_name' => 'Platform',
+                'first_name' => 'Platform',
+                'last_name' => null,
+                'email' => 'user@example.test',
+                'status' => 'active',
+                'display_name' => 'Platform',
+                'preferred_app' => 'platform',
+                'updated_at_human' => '28 Mei 2026, 10:00',
+                'roles' => ['Super Admin'],
+                'identity' => [
+                    'provider' => 'keycloak',
+                    'provider_label' => 'Keycloak',
+                    'subject' => 'kc-user-1',
+                    'username' => 'platform.user',
+                    'preferred_username' => 'platform.user',
+                    'realm_roles' => ['super_admin'],
+                    'email_verified' => true,
+                ],
+            ],
+        ]),
+    ]);
+
+    $user = User::factory()->create([
+        'name' => 'Platform User',
+        'email' => 'user@example.test',
+    ]);
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+    ])->get(route('profile.show'))
+        ->assertOk()
+        ->assertSee('value="Platform"', false)
+        ->assertSee('name="last_name" value=""', false)
+        ->assertDontSee('name="last_name" value="User"', false);
+});

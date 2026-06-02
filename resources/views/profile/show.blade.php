@@ -310,12 +310,30 @@
 
 @php
     $identity = (array) ($profile['identity'] ?? []);
-    $fullName = $profile['full_name'] ?? ($profile['name'] ?? $user->name);
-    $firstName = $profile['first_name'] ?? \Illuminate\Support\Str::of($fullName)->before(' ')->toString();
-    $lastName = $profile['last_name'] ?? trim(\Illuminate\Support\Str::of($fullName)->after(' ')->toString());
-    $displayEmail = $profile['email'] ?? $user->email;
     $emailVerified = $identity['email_verified'] ?? null;
     $emailVerifiedLabel = $emailVerified === true ? 'Terverifikasi' : ($emailVerified === false ? 'Belum diverifikasi' : 'Tidak tersedia');
+@endphp
+
+@php
+    $profileHasFullName = is_array($profile ?? null) && array_key_exists('full_name', $profile);
+    $profileHasName = is_array($profile ?? null) && array_key_exists('name', $profile);
+    $profileHasFirstName = is_array($profile ?? null) && array_key_exists('first_name', $profile);
+    $profileHasLastName = is_array($profile ?? null) && array_key_exists('last_name', $profile);
+    $profileHasEmail = is_array($profile ?? null) && array_key_exists('email', $profile);
+
+    $fullName = $profileHasFullName
+        ? trim((string) ($profile['full_name'] ?? ''))
+        : ($profileHasName ? trim((string) ($profile['name'] ?? '')) : trim((string) $user->name));
+
+    $firstName = $profileHasFirstName
+        ? trim((string) ($profile['first_name'] ?? ''))
+        : \Illuminate\Support\Str::of($fullName)->before(' ')->toString();
+
+    $lastName = $profileHasLastName
+        ? trim((string) ($profile['last_name'] ?? ''))
+        : trim(\Illuminate\Support\Str::of($fullName)->after(' ')->toString());
+
+    $displayEmail = $profileHasEmail ? trim((string) ($profile['email'] ?? '')) : trim((string) $user->email);
 @endphp
 
 <div class="profile-shell">
@@ -345,17 +363,6 @@
                         <span class="profile-pill is-role">{{ \Illuminate\Support\Str::headline($roleName) }}</span>
                     @empty
                         <span class="profile-pill">Tanpa role</span>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="profile-block">
-                <p class="profile-block-title">Realm Role Keycloak</p>
-                <div class="profile-pill-row">
-                    @forelse (($identity['realm_roles'] ?? []) as $realmRole)
-                        <span class="profile-pill is-realm-role">{{ \Illuminate\Support\Str::headline($realmRole) }}</span>
-                    @empty
-                        <span class="profile-pill">Tidak ada realm role</span>
                     @endforelse
                 </div>
             </div>
@@ -424,12 +431,6 @@
                     <div class="profile-field">
                         <label class="profile-label" for="profile-email">Email</label>
                         <input id="profile-email" type="email" value="{{ $displayEmail }}" class="profile-input" readonly aria-readonly="true">
-                    </div>
-
-                    <div class="profile-field is-full">
-                        <div class="profile-note">
-                            Perubahan first name, last name, dan password di halaman ini akan diteruskan ke akun Keycloak aktif Anda. Username dan email mengikuti identitas login saat ini.
-                        </div>
                     </div>
 
                     <div class="profile-field">
