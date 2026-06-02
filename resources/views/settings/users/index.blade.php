@@ -659,11 +659,13 @@
             <div class="um-register">
                 <span class="um-register-dot {{ $registrationEnabled ? 'is-on' : 'is-off' }}"></span>
                 <span>Register {{ $registrationEnabled ? 'aktif' : 'nonaktif' }}</span>
-                <form action="{{ route('settings.users.registration.update') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="registration_enabled" value="{{ $registrationEnabled ? '0' : '1' }}">
-                    <button type="submit" class="um-link-button">{{ $registrationEnabled ? 'Nonaktifkan' : 'Aktifkan' }}</button>
-                </form>
+                @can('users.update')
+                    <form action="{{ route('settings.users.registration.update') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="registration_enabled" value="{{ $registrationEnabled ? '0' : '1' }}">
+                        <button type="submit" class="um-link-button">{{ $registrationEnabled ? 'Nonaktifkan' : 'Aktifkan' }}</button>
+                    </form>
+                @endcan
             </div>
 
             <form action="{{ route('settings.users.index') }}" method="GET" class="material-search-form manual-search" data-search-manual="true">
@@ -967,4 +969,5 @@
     });
 </script>
 @endpush
+
 

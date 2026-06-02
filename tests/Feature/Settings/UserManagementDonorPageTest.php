@@ -57,7 +57,37 @@ test('settings users donor page renders transplanted user management view with k
         ->assertSee('First Name')
         ->assertSee('Last Name')
         ->assertSee('Platform Operator')
-        ->assertSee('Register aktif');
+        ->assertSee('Register aktif')
+        ->assertSee('Nonaktifkan');
+});
+
+test('settings users donor page hides registration toggle action for read-only viewers', function () {
+    Http::fake([
+        'http://127.0.0.1:8011/api/v1/users' => Http::response([
+            'data' => [
+                'items' => [],
+                'roles' => [],
+                'registration_enabled' => true,
+                'summary' => [
+                    'total_users' => 0,
+                    'with_roles' => 0,
+                    'pending_access' => 0,
+                ],
+            ],
+        ]),
+    ]);
+
+    $user = User::factory()->create([
+        'permission_snapshot' => ['users.view'],
+    ]);
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+    ])->get(route('settings.users.index'))
+        ->assertOk()
+        ->assertSee('Register aktif')
+        ->assertDontSee('Nonaktifkan')
+        ->assertDontSee('Aktifkan');
 });
 
 test('settings users donor page can proxy create user submission with keycloak-style fields', function () {
@@ -100,5 +130,50 @@ test('settings users donor page can proxy create user submission with keycloak-s
             && $request['email'] === 'supply.owner@example.test'
             && $request['password'] === 'password123'
             && $request['roles'][0] === 'Platform Operator';
+    });
+});
+
+test('settings users page can proxy inline registration toggle update', function () {
+    Http::fake([
+        'http://127.0.0.1:8011/api/v1/settings/registration' => Http::sequence()
+            ->push([
+                'data' => [
+                    'registration_enabled' => true,
+                    'approval_mode' => 'admin_approval',
+                    'default_new_user_status' => 'pending_access',
+                    'notes' => 'Pilot rollout',
+                ],
+            ])
+            ->push([
+                'data' => [
+                    'registration_enabled' => false,
+                    'approval_mode' => 'admin_approval',
+                    'default_new_user_status' => 'pending_access',
+                    'notes' => 'Pilot rollout',
+                ],
+            ]),
+    ]);
+
+    $user = User::factory()->create([
+        'permission_snapshot' => ['users.view', 'users.update'],
+    ]);
+
+    $this->actingAs($user)->withSession([
+        'platform_access_token' => 'access-token-123',
+    ])->post(route('settings.users.registration.update'), [
+        'registration_enabled' => '0',
+    ])->assertRedirect(route('settings.users.index'));
+
+    Http::assertSent(function ($request) {
+        return $request->url() === 'http://127.0.0.1:8011/api/v1/settings/registration'
+            && $request->method() === 'GET';
+    });
+
+    Http::assertSent(function ($request) {
+        return $request->url() === 'http://127.0.0.1:8011/api/v1/settings/registration'
+            && $request->method() === 'PUT'
+            && $request['registration_enabled'] === false
+            && $request['approval_mode'] === 'admin_approval'
+            && $request['default_new_user_status'] === 'pending_access';
     });
 });
