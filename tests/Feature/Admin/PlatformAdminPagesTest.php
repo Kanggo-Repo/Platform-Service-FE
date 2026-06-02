@@ -12,7 +12,7 @@ beforeEach(function () {
 
 test('legacy admin roles route redirects to donor settings roles page', function () {
     $user = User::factory()->create([
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['users.update'],
     ]);
 
@@ -35,7 +35,7 @@ test('registration settings page renders current toggle state', function () {
     ]);
 
     $user = User::factory()->create([
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['users.update'],
     ]);
 

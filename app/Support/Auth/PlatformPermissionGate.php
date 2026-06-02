@@ -82,7 +82,6 @@ class PlatformPermissionGate
     {
         $roles = $this->roles($user);
 
-        return in_array('super_admin', $roles, true)
-            || in_array('platform_operator', $roles, true);
+        return in_array('super_admin', $roles, true);
     }
 }

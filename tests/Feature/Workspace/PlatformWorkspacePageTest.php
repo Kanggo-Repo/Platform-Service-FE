@@ -39,7 +39,7 @@ test('workspace redirects pending access users to access pending page', function
                     'blocked_services' => [],
                     'pending_services' => ['platform', 'supply', 'calculation'],
                 ],
-                'roles' => ['platform_operator'],
+                'roles' => ['super_admin'],
                 'navigation' => [
                     'preferred_route' => 'platform.access.pending',
                 ],
@@ -63,7 +63,7 @@ test('workspace redirects pending access users to access pending page', function
     ]);
 
     $user = User::factory()->create([
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['dashboard.view'],
     ]);
 
@@ -76,7 +76,7 @@ test('workspace redirects pending access users to access pending page', function
 test('access pending page renders transplanted pending access view', function () {
     $user = User::factory()->create([
         'name' => 'Platform User',
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['dashboard.view'],
     ]);
 
@@ -108,7 +108,7 @@ test('workspace performs one-time handoff to preferred supply app after login', 
                     'blocked_services' => [],
                     'pending_services' => ['calculation'],
                 ],
-                'roles' => ['platform_operator'],
+                'roles' => ['super_admin'],
                 'navigation' => [
                     'preferred_route' => 'service.supply',
                 ],
@@ -132,7 +132,7 @@ test('workspace performs one-time handoff to preferred supply app after login', 
     ]);
 
     $user = User::factory()->create([
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['dashboard.view'],
     ]);
 
@@ -164,7 +164,7 @@ test('workspace renders donor dashboard for active platform users', function () 
                     'blocked_services' => [],
                     'pending_services' => ['supply', 'calculation'],
                 ],
-                'roles' => ['platform_operator'],
+                'roles' => ['super_admin'],
                 'navigation' => [
                     'preferred_route' => 'platform.dashboard',
                 ],
@@ -219,7 +219,7 @@ test('workspace renders donor dashboard for active platform users', function () 
 
     $user = User::factory()->create([
         'name' => 'Platform User',
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['dashboard.view'],
     ]);
 
@@ -269,7 +269,7 @@ test('workspace resets session and redirects to login when dashboard request fai
                     'blocked_services' => [],
                     'pending_services' => ['supply', 'calculation'],
                 ],
-                'roles' => ['platform_operator'],
+                'roles' => ['super_admin'],
                 'navigation' => [
                     'preferred_route' => 'platform.dashboard',
                 ],
@@ -335,7 +335,7 @@ test('workspace sidebar shows store warning badge from supply summary', function
                     'blocked_services' => [],
                     'pending_services' => ['supply', 'calculation'],
                 ],
-                'roles' => ['platform_operator'],
+                'roles' => ['super_admin'],
                 'navigation' => [
                     'preferred_route' => 'platform.dashboard',
                 ],
@@ -369,7 +369,7 @@ test('workspace sidebar shows store warning badge from supply summary', function
 
     $user = User::factory()->create([
         'name' => 'Platform User',
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['dashboard.view'],
     ]);
 
@@ -402,7 +402,7 @@ test('workspace sidebar shows project draft badge from calculation drafts', func
                     'blocked_services' => [],
                     'pending_services' => ['supply', 'calculation'],
                 ],
-                'roles' => ['platform_operator'],
+                'roles' => ['super_admin'],
                 'navigation' => [
                     'preferred_route' => 'platform.dashboard',
                 ],
@@ -437,7 +437,7 @@ test('workspace sidebar shows project draft badge from calculation drafts', func
 
     $user = User::factory()->create([
         'name' => 'Platform User',
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['dashboard.view'],
     ]);
 
@@ -452,7 +452,7 @@ test('workspace sidebar shows project draft badge from calculation drafts', func
 test('workers page renders platform-owned placeholder view', function () {
     $user = User::factory()->create([
         'name' => 'Platform User',
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['workers.view'],
     ]);
 
@@ -467,7 +467,7 @@ test('workers page renders platform-owned placeholder view', function () {
 test('skills page renders platform-owned placeholder view', function () {
     $user = User::factory()->create([
         'name' => 'Platform User',
-        'role_snapshot' => ['platform_operator'],
+        'role_snapshot' => ['super_admin'],
         'permission_snapshot' => ['skills.view'],
     ]);
 

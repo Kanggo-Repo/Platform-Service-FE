@@ -21,10 +21,10 @@ class PlatformPermissionGateTest extends TestCase
         $this->assertFalse($gate->allowsAny($user, ['materials.view', 'stores.view']));
     }
 
-    public function test_platform_operator_role_is_treated_as_bootstrap_admin(): void
+    public function test_super_admin_role_is_treated_as_bootstrap_admin(): void
     {
         $user = new User([
-            'role_snapshot' => ['platform_operator'],
+            'role_snapshot' => ['super_admin'],
             'permission_snapshot' => [],
         ]);
 
