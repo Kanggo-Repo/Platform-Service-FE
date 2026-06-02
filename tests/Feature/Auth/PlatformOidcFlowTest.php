@@ -60,14 +60,16 @@ test('callback exchanges authorization code and stores tokens in session', funct
         ]),
     ]);
 
-    $this->withSession([
+    $response = $this->withSession([
         'oidc_state' => 'expected-state',
         'oidc_code_verifier' => 'verifier-123',
     ])->get(route('auth.callback', [
         'code' => 'authorization-code',
         'state' => 'expected-state',
-    ]))
-        ->assertRedirect(route('workspace.index'));
+    ]));
+
+    $response->assertRedirect(route('workspace.index'));
+    $response->assertCookie('kanggo_active_subject', 'keycloak:kc-user-1');
 
     expect(session('platform_access_token'))->toBe('access-token-123');
     expect(session('platform_refresh_token'))->toBe('refresh-token-123');
@@ -88,4 +90,19 @@ test('logout clears session and redirects to keycloak logout endpoint', function
     expect(session()->has('platform_access_token'))->toBeFalse();
     expect(session()->has('platform_refresh_token'))->toBeFalse();
     expect($response->headers->get('Location'))->toContain('https://auth.example.test/realms/kanggo/protocol/openid-connect/logout');
+});
+
+test('platform auth middleware logs out local user when shared subject cookie points to another account', function () {
+    $user = User::factory()->create([
+        'auth_provider' => 'keycloak',
+        'auth_subject' => 'keycloak:kc-user-old',
+    ]);
+
+    $this->actingAs($user)
+        ->withSession(['platform_access_token' => 'access-token-123'])
+        ->withCookie('kanggo_active_subject', 'keycloak:kc-user-new')
+        ->get(route('workspace.index'))
+        ->assertRedirect(route('auth.redirect'));
+
+    expect(auth()->check())->toBeFalse();
 });

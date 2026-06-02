@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Auth\KeycloakOidcService;
 use App\Services\Platform\PlatformServiceClient;
+use App\Support\Auth\SharedAuthSubjectCookie;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -76,6 +77,7 @@ class PlatformOidcController extends Controller
         Auth::guard('web')->login($user, true);
         $request->session()->regenerate();
         $request->session()->put('platform_post_login_redirect', true);
+        SharedAuthSubjectCookie::queue($request, (string) $user->auth_subject);
 
         return redirect()->route('workspace.index');
     }
@@ -95,6 +97,7 @@ class PlatformOidcController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         Auth::guard('web')->logout();
+        SharedAuthSubjectCookie::queueForget($request);
 
         return redirect()->away($this->keycloakOidcService->logoutUrl(
             postLogoutRedirectUri: route('login'),

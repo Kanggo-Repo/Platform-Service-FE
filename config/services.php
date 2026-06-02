@@ -65,6 +65,7 @@ return [
         'base_url' => env('KEYCLOAK_BASE_URL'),
         'realm' => env('KEYCLOAK_REALM', 'kanggo'),
         'client_id' => env('KEYCLOAK_CLIENT_ID', 'platform-fe'),
+        'shared_subject_cookie' => env('KEYCLOAK_SHARED_SUBJECT_COOKIE', 'kanggo_active_subject'),
         'verify_ssl' => env('KEYCLOAK_VERIFY_SSL', true),
         'ca_bundle' => env('KEYCLOAK_CA_BUNDLE'),
     ],
