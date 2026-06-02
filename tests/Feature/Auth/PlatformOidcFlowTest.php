@@ -79,6 +79,41 @@ test('callback exchanges authorization code and stores tokens in session', funct
     expect(User::query()->where('auth_subject', 'keycloak:kc-user-1')->firstOrFail()->permission_snapshot)->toBe(['roles.manage', 'users.manage']);
 });
 
+test('callback returns user to remembered page after standby re-login', function () {
+    Http::fake([
+        'https://auth.example.test/realms/kanggo/protocol/openid-connect/token' => Http::response([
+            'access_token' => 'access-token-123',
+            'refresh_token' => 'refresh-token-123',
+            'id_token' => 'id-token-123',
+            'expires_in' => 300,
+        ]),
+        'http://127.0.0.1:8011/api/v1/me' => Http::response([
+            'data' => [
+                'identity' => [
+                    'subject' => 'kc-user-2',
+                    'email' => 'user@example.test',
+                    'name' => 'Platform User',
+                    'realm_roles' => ['platform_operator'],
+                ],
+                'roles' => ['super_admin'],
+                'permissions' => ['roles.manage', 'users.manage'],
+            ],
+        ]),
+    ]);
+
+    $response = $this->withSession([
+        'oidc_state' => 'expected-state',
+        'oidc_code_verifier' => 'verifier-123',
+        'auth_return_to' => '/profile',
+    ])->get(route('auth.callback', [
+        'code' => 'authorization-code',
+        'state' => 'expected-state',
+    ]));
+
+    $response->assertRedirect('/profile');
+    expect(session()->has('platform_post_login_redirect'))->toBeFalse();
+});
+
 test('logout clears session and redirects to keycloak logout endpoint', function () {
     $response = $this->withSession([
         'platform_access_token' => 'access-token-123',

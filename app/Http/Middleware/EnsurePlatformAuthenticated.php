@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Auth\LoginRedirectMemory;
 use App\Support\Auth\SharedAuthSubjectCookie;
 use Closure;
 use Illuminate\Http\Request;
@@ -19,9 +20,11 @@ class EnsurePlatformAuthenticated
             $sharedSubject = SharedAuthSubjectCookie::current($request);
 
             if ($localSubject !== '' && $sharedSubject !== '' && ! hash_equals($localSubject, $sharedSubject)) {
+                $redirectTarget = LoginRedirectMemory::capture($request);
                 Auth::guard('web')->logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
+                LoginRedirectMemory::store($request, $redirectTarget);
                 SharedAuthSubjectCookie::queueForget($request);
 
                 return redirect()->guest(route('auth.redirect'));
@@ -33,9 +36,11 @@ class EnsurePlatformAuthenticated
                     || $request->session()->has('platform_id_token');
 
                 if ($hasOidcSession) {
+                    $redirectTarget = LoginRedirectMemory::capture($request);
                     Auth::guard('web')->logout();
                     $request->session()->invalidate();
                     $request->session()->regenerateToken();
+                    LoginRedirectMemory::store($request, $redirectTarget);
 
                     return redirect()->guest(route('auth.redirect'));
                 }
@@ -51,6 +56,8 @@ class EnsurePlatformAuthenticated
                 'message' => 'Unauthenticated.',
             ], 401);
         }
+
+        LoginRedirectMemory::remember($request);
 
         return redirect()->guest(route('auth.redirect'));
     }

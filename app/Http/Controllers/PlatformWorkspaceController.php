@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Platform\PlatformServiceClient;
+use App\Support\Auth\LoginRedirectMemory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -19,13 +20,16 @@ class PlatformWorkspaceController extends Controller
         $accessToken = $request->session()->get('platform_access_token');
 
         if (! is_string($accessToken) || $accessToken === '') {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         try {
             $me = $this->platformServiceClient->me($accessToken);
             $navigation = $this->platformServiceClient->navigation($accessToken);
         } catch (RuntimeException) {
+            LoginRedirectMemory::store($request, LoginRedirectMemory::capture($request));
             $request->session()->forget([
                 'platform_access_token',
                 'platform_refresh_token',
@@ -33,7 +37,7 @@ class PlatformWorkspaceController extends Controller
                 'platform_token_expires_at',
             ]);
 
-            return redirect()->route('login');
+            return redirect()->route('auth.redirect');
         }
 
         if (($navigation['pending_access'] ?? false) === true) {
@@ -51,6 +55,7 @@ class PlatformWorkspaceController extends Controller
         try {
             $dashboard = $this->platformServiceClient->dashboard($accessToken);
         } catch (RuntimeException) {
+            LoginRedirectMemory::store($request, LoginRedirectMemory::capture($request));
             $request->session()->forget([
                 'platform_access_token',
                 'platform_refresh_token',
@@ -58,7 +63,7 @@ class PlatformWorkspaceController extends Controller
                 'platform_token_expires_at',
             ]);
 
-            return redirect()->route('login');
+            return redirect()->route('auth.redirect');
         }
 
         return view('workspace.index', [

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Auth\KeycloakOidcService;
 use App\Services\Platform\PlatformServiceClient;
+use App\Support\Auth\LoginRedirectMemory;
 use App\Support\Auth\SharedAuthSubjectCookie;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,13 +74,22 @@ class PlatformOidcController extends Controller
 
         $me = $this->platformServiceClient->me($accessToken);
         $user = $this->upsertUser($me);
+        $redirectTarget = LoginRedirectMemory::pull($request);
 
         Auth::guard('web')->login($user, true);
         $request->session()->regenerate();
-        $request->session()->put('platform_post_login_redirect', true);
+
+        if ($redirectTarget === null) {
+            $request->session()->put('platform_post_login_redirect', true);
+        } else {
+            $request->session()->forget('platform_post_login_redirect');
+        }
+
         SharedAuthSubjectCookie::queue($request, (string) $user->auth_subject);
 
-        return redirect()->route('workspace.index');
+        return $redirectTarget !== null
+            ? redirect()->to($redirectTarget)
+            : redirect()->route('workspace.index');
     }
 
     public function logout(Request $request): RedirectResponse

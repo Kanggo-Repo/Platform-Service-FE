@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Platform\PlatformServiceClient;
+use App\Support\Auth\LoginRedirectMemory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -23,7 +24,9 @@ class UserManagementController extends Controller
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         try {
@@ -60,7 +63,9 @@ class UserManagementController extends Controller
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         $validated = $request->validate([
@@ -92,7 +97,9 @@ class UserManagementController extends Controller
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         $validated = $request->validate([
@@ -124,7 +131,9 @@ class UserManagementController extends Controller
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         try {
@@ -141,7 +150,9 @@ class UserManagementController extends Controller
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         $validated = $request->validate([
@@ -248,6 +259,8 @@ class UserManagementController extends Controller
 
     private function redirectToLoginAfterSessionReset(Request $request): RedirectResponse
     {
+        $redirectTarget = LoginRedirectMemory::capture($request);
+
         $request->session()->forget([
             'platform_access_token',
             'platform_refresh_token',
@@ -255,6 +268,8 @@ class UserManagementController extends Controller
             'platform_token_expires_at',
         ]);
 
-        return redirect()->route('login');
+        LoginRedirectMemory::store($request, $redirectTarget);
+
+        return redirect()->route('auth.redirect');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Services\Platform\PlatformServiceClient;
+use App\Support\Auth\LoginRedirectMemory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -16,15 +17,16 @@ class RoleManagementController extends Controller
 {
     public function __construct(
         private readonly PlatformServiceClient $platformServiceClient,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View|RedirectResponse
     {
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         try {
@@ -116,7 +118,9 @@ class RoleManagementController extends Controller
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         try {
@@ -133,7 +137,9 @@ class RoleManagementController extends Controller
         $accessToken = $this->accessTokenFromSession($request);
 
         if ($accessToken === null) {
-            return redirect()->route('login');
+            LoginRedirectMemory::remember($request);
+
+            return redirect()->route('auth.redirect');
         }
 
         $validated = $request->validate([
@@ -167,6 +173,8 @@ class RoleManagementController extends Controller
 
     private function redirectToLoginAfterSessionReset(Request $request): RedirectResponse
     {
+        $redirectTarget = LoginRedirectMemory::capture($request);
+
         $request->session()->forget([
             'platform_access_token',
             'platform_refresh_token',
@@ -174,6 +182,8 @@ class RoleManagementController extends Controller
             'platform_token_expires_at',
         ]);
 
-        return redirect()->route('login');
+        LoginRedirectMemory::store($request, $redirectTarget);
+
+        return redirect()->route('auth.redirect');
     }
 }

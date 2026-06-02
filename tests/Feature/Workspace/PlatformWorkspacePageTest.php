@@ -303,7 +303,7 @@ test('workspace resets session and redirects to login when dashboard request fai
         'platform_id_token' => 'id-token-123',
         'platform_token_expires_at' => now()->addHour()->timestamp,
     ])->get(route('workspace.index'))
-        ->assertRedirect(route('login'))
+        ->assertRedirect(route('auth.redirect'))
         ->assertSessionMissing([
             'platform_access_token',
             'platform_refresh_token',
