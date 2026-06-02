@@ -64,7 +64,8 @@ class UserManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'confirmed', 'min:8'],
             'roles' => ['nullable', 'array'],
@@ -73,7 +74,8 @@ class UserManagementController extends Controller
 
         try {
             $this->platformServiceClient->createUser($accessToken, [
-                'name' => $validated['name'],
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'] ?? null,
                 'email' => $validated['email'],
                 'password' => $validated['password'],
                 'roles' => array_values($validated['roles'] ?? []),
@@ -94,7 +96,8 @@ class UserManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['nullable', 'string', 'confirmed', 'min:8'],
             'roles' => ['nullable', 'array'],
@@ -103,7 +106,8 @@ class UserManagementController extends Controller
 
         try {
             $this->platformServiceClient->updateUser($accessToken, $user, [
-                'name' => $validated['name'],
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'] ?? null,
                 'email' => $validated['email'],
                 'password' => $validated['password'] ?: null,
                 'roles' => array_values($validated['roles'] ?? []),
@@ -180,13 +184,20 @@ class UserManagementController extends Controller
 
     private function hydrateUser(Request $request, array $payload, Collection $roles): User
     {
+        $fullName = (string) ($payload['full_name'] ?? $payload['name'] ?? '');
+
         $user = new User([
-            'name' => $payload['name'],
+            'name' => $fullName,
             'email' => $payload['email'],
         ]);
         $user->id = $payload['id'];
         $user->exists = true;
         $user->status = $payload['status'] ?? 'pending_access';
+        $user->keycloak_subject = $payload['keycloak_subject'] ?? null;
+        $user->first_name = $payload['first_name'] ?? $this->splitName($fullName)[0];
+        $user->last_name = $payload['last_name'] ?? $this->splitName($fullName)[1];
+        $user->username = $payload['username'] ?? $payload['email'];
+        $user->full_name = $fullName;
         $user->is_current_user = $request->user()?->email === ($payload['email'] ?? null);
 
         $selectedRoleNames = collect($payload['roles'] ?? []);
@@ -211,6 +222,21 @@ class UserManagementController extends Controller
         $role->users_count = $payload['users_count'] ?? 0;
 
         return $role;
+    }
+
+    private function splitName(string $value): array
+    {
+        $normalized = preg_replace('/\s+/', ' ', trim($value)) ?? '';
+
+        if ($normalized === '') {
+            return ['', null];
+        }
+
+        $segments = explode(' ', $normalized);
+        $firstName = array_shift($segments) ?? '';
+        $lastName = $segments !== [] ? implode(' ', $segments) : null;
+
+        return [$firstName, $lastName];
     }
 
     private function accessTokenFromSession(Request $request): ?string

@@ -9,7 +9,7 @@ beforeEach(function () {
     ]);
 });
 
-test('settings users donor page renders transplanted user management view', function () {
+test('settings users donor page renders transplanted user management view with keycloak-style fields', function () {
     Http::fake([
         'http://127.0.0.1:8011/api/v1/users' => Http::response([
             'data' => [
@@ -17,6 +17,10 @@ test('settings users donor page renders transplanted user management view', func
                     [
                         'id' => 7,
                         'name' => 'Supply Owner',
+                        'full_name' => 'Supply Owner',
+                        'first_name' => 'Supply',
+                        'last_name' => 'Owner',
+                        'username' => 'supply.owner@example.test',
                         'email' => 'supply.owner@example.test',
                         'status' => 'active',
                         'roles' => ['Platform Operator'],
@@ -49,16 +53,23 @@ test('settings users donor page renders transplanted user management view', func
         ->assertOk()
         ->assertSee('Tambah User')
         ->assertSee('Supply Owner')
+        ->assertSee('Username: supply.owner@example.test')
+        ->assertSee('First Name')
+        ->assertSee('Last Name')
         ->assertSee('Platform Operator')
         ->assertSee('Register aktif');
 });
 
-test('settings users donor page can proxy create user submission', function () {
+test('settings users donor page can proxy create user submission with keycloak-style fields', function () {
     Http::fake([
         'http://127.0.0.1:8011/api/v1/users' => Http::response([
             'data' => [
                 'id' => 8,
                 'name' => 'Supply Owner',
+                'full_name' => 'Supply Owner',
+                'first_name' => 'Supply',
+                'last_name' => 'Owner',
+                'username' => 'supply.owner@example.test',
                 'email' => 'supply.owner@example.test',
                 'status' => 'active',
                 'roles' => ['Platform Operator'],
@@ -73,7 +84,8 @@ test('settings users donor page can proxy create user submission', function () {
     $this->actingAs($user)->withSession([
         'platform_access_token' => 'access-token-123',
     ])->post(route('settings.users.store'), [
-        'name' => 'Supply Owner',
+        'first_name' => 'Supply',
+        'last_name' => 'Owner',
         'email' => 'supply.owner@example.test',
         'password' => 'password123',
         'password_confirmation' => 'password123',
@@ -83,7 +95,8 @@ test('settings users donor page can proxy create user submission', function () {
     Http::assertSent(function ($request) {
         return $request->url() === 'http://127.0.0.1:8011/api/v1/users'
             && $request->method() === 'POST'
-            && $request['name'] === 'Supply Owner'
+            && $request['first_name'] === 'Supply'
+            && $request['last_name'] === 'Owner'
             && $request['email'] === 'supply.owner@example.test'
             && $request['password'] === 'password123'
             && $request['roles'][0] === 'Platform Operator';

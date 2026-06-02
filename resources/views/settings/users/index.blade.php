@@ -727,12 +727,20 @@
                                         <input type="hidden" name="form_context" value="create-user">
                                         <div class="um-editor-grid">
                                             <div class="um-field um-field-inline">
-                                                <label class="um-label">Nama</label>
-                                                <input type="text" name="name" value="{{ old('form_context') === 'create-user' ? old('name') : '' }}" class="um-input" required>
+                                                <label class="um-label">First Name</label>
+                                                <input type="text" name="first_name" value="{{ old('form_context') === 'create-user' ? old('first_name') : '' }}" class="um-input" required>
+                                            </div>
+                                            <div class="um-field um-field-inline">
+                                                <label class="um-label">Last Name</label>
+                                                <input type="text" name="last_name" value="{{ old('form_context') === 'create-user' ? old('last_name') : '' }}" class="um-input">
                                             </div>
                                             <div class="um-field um-field-inline">
                                                 <label class="um-label">Email</label>
                                                 <input type="email" name="email" value="{{ old('form_context') === 'create-user' ? old('email') : '' }}" class="um-input" required>
+                                            </div>
+                                            <div class="um-field um-field-inline">
+                                                <label class="um-label">Username</label>
+                                                <input type="text" value="Mengikuti email saat provisioning" class="um-input" readonly aria-readonly="true">
                                             </div>
                                             <div class="um-field um-field-inline">
                                                 <label class="um-label">Password</label>
@@ -761,7 +769,7 @@
                                                     @endforeach
                                                 </div>
                                             </div>
-                                        </div>
+</div>
                                         <div class="um-editor-actions">
                                             <span class="um-table-note">User baru akan langsung aktif setelah role dipasang dan disimpan.</span>
                                             <div class="um-toolbar-group">
@@ -790,11 +798,12 @@
                                     <div class="um-avatar">{{ strtoupper(substr($user->name, 0, 1)) }}</div>
                                     <div>
                                         <div class="um-user-name">
-                                            <span>{{ $user->name }}</span>
+                                            <span>{{ $user->full_name ?? $user->name }}</span>
                                             @if ($user->is_current_user ?? false)
                                                 <span class="um-self-badge">Akun aktif</span>
                                             @endif
                                         </div>
+                                        <div class="um-user-email">Username: {{ $user->username ?? $user->email }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -850,12 +859,20 @@
                                             <input type="hidden" name="editing_user_id" value="{{ $user->id }}">
                                             <div class="um-editor-grid">
                                                 <div class="um-field um-field-inline">
-                                                    <label class="um-label">Nama</label>
-                                                    <input type="text" name="name" value="{{ old('editing_user_id') == $user->id ? old('name', $user->name) : $user->name }}" class="um-input" required>
+                                                    <label class="um-label">First Name</label>
+                                                    <input type="text" name="first_name" value="{{ old('editing_user_id') == $user->id ? old('first_name', $user->first_name) : $user->first_name }}" class="um-input" required>
+                                                </div>
+                                                <div class="um-field um-field-inline">
+                                                    <label class="um-label">Last Name</label>
+                                                    <input type="text" name="last_name" value="{{ old('editing_user_id') == $user->id ? old('last_name', $user->last_name) : $user->last_name }}" class="um-input">
                                                 </div>
                                                 <div class="um-field um-field-inline">
                                                     <label class="um-label">Email</label>
                                                     <input type="email" name="email" value="{{ old('editing_user_id') == $user->id ? old('email', $user->email) : $user->email }}" class="um-input" required>
+                                                </div>
+                                                <div class="um-field um-field-inline">
+                                                    <label class="um-label">Username</label>
+                                                    <input type="text" value="{{ $user->username ?? $user->email }}" class="um-input" readonly aria-readonly="true">
                                                 </div>
                                                 <div class="um-field um-field-inline">
                                                     <label class="um-label">Password Baru</label>
@@ -884,7 +901,7 @@
                                                         @endforeach
                                                     </div>
                                                 </div>
-                                            </div>
+</div>
                                             <div class="um-editor-actions">
                                                 <span class="um-table-note">Perubahan tersimpan langsung ke user ini.</span>
                                                 <div class="um-toolbar-group">
@@ -950,3 +967,4 @@
     });
 </script>
 @endpush
+
