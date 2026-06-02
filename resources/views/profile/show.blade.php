@@ -35,8 +35,7 @@
         display: grid;
         gap: 18px;
         align-content: start;
-        background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(250, 243, 236, 0.82) 100%);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(250, 243, 236, 0.82) 100%);
     }
 
     .profile-avatar-wrap {
@@ -99,9 +98,30 @@
         color: var(--profile-accent);
     }
 
+    .profile-pill.is-realm-role {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+    }
+
+    .profile-block {
+        display: grid;
+        gap: 10px;
+    }
+
+    .profile-block-title {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--profile-muted);
+    }
+
     .profile-meta {
         display: grid;
         gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .profile-meta-item {
@@ -125,14 +145,15 @@
         color: var(--profile-ink);
         font-size: 0.9rem;
         font-weight: 700;
+        line-height: 1.45;
+        word-break: break-word;
     }
 
     .profile-form-card {
         padding: 24px;
         display: grid;
         gap: 18px;
-        background:
-            linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 251, 255, 0.94) 100%);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 251, 255, 0.94) 100%);
     }
 
     .profile-section-title {
@@ -280,11 +301,22 @@
     }
 
     @media (max-width: 720px) {
+        .profile-meta,
         .profile-form-grid {
             grid-template-columns: 1fr;
         }
     }
 </style>
+
+@php
+    $identity = (array) ($profile['identity'] ?? []);
+    $fullName = $profile['full_name'] ?? ($profile['name'] ?? $user->name);
+    $firstName = $profile['first_name'] ?? \Illuminate\Support\Str::of($fullName)->before(' ')->toString();
+    $lastName = $profile['last_name'] ?? trim(\Illuminate\Support\Str::of($fullName)->after(' ')->toString());
+    $displayEmail = $profile['email'] ?? $user->email;
+    $emailVerified = $identity['email_verified'] ?? null;
+    $emailVerifiedLabel = $emailVerified === true ? 'Terverifikasi' : ($emailVerified === false ? 'Belum diverifikasi' : 'Tidak tersedia');
+@endphp
 
 <div class="profile-shell">
     @if ($errors->any())
@@ -299,25 +331,63 @@
     <section class="profile-grid">
         <aside class="profile-card profile-summary">
             <div class="profile-avatar-wrap">
-                <div class="profile-avatar">{{ strtoupper(substr($user->name, 0, 1)) }}</div>
+                <div class="profile-avatar">{{ strtoupper(substr($fullName, 0, 1)) }}</div>
                 <div>
-                    <h2 class="profile-name">{{ $profile['name'] ?? $user->name }}</h2>
-                    <p class="profile-email">{{ $profile['email'] ?? $user->email }}</p>
+                    <h2 class="profile-name">{{ $fullName }}</h2>
+                    <p class="profile-email">{{ $displayEmail }}</p>
                 </div>
             </div>
 
-            <div class="profile-pill-row">
-                @forelse (($profile['roles'] ?? []) as $roleName)
-                    <span class="profile-pill is-role">{{ \Illuminate\Support\Str::headline($roleName) }}</span>
-                @empty
-                    <span class="profile-pill">Tanpa role</span>
-                @endforelse
+            <div class="profile-block">
+                <p class="profile-block-title">Role Aplikasi</p>
+                <div class="profile-pill-row">
+                    @forelse (($profile['roles'] ?? []) as $roleName)
+                        <span class="profile-pill is-role">{{ \Illuminate\Support\Str::headline($roleName) }}</span>
+                    @empty
+                        <span class="profile-pill">Tanpa role</span>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="profile-block">
+                <p class="profile-block-title">Realm Role Keycloak</p>
+                <div class="profile-pill-row">
+                    @forelse (($identity['realm_roles'] ?? []) as $realmRole)
+                        <span class="profile-pill is-realm-role">{{ \Illuminate\Support\Str::headline($realmRole) }}</span>
+                    @empty
+                        <span class="profile-pill">Tidak ada realm role</span>
+                    @endforelse
+                </div>
             </div>
 
             <div class="profile-meta">
                 <div class="profile-meta-item">
                     <p class="profile-meta-label">Status Akses</p>
                     <p class="profile-meta-value">{{ ($profile['status'] ?? 'pending_access') === 'active' ? 'Aktif' : 'Menunggu role dari admin' }}</p>
+                </div>
+                <div class="profile-meta-item">
+                    <p class="profile-meta-label">Provider Login</p>
+                    <p class="profile-meta-value">{{ $identity['provider_label'] ?? 'Keycloak' }}</p>
+                </div>
+                <div class="profile-meta-item">
+                    <p class="profile-meta-label">First Name</p>
+                    <p class="profile-meta-value">{{ $firstName !== '' ? $firstName : '-' }}</p>
+                </div>
+                <div class="profile-meta-item">
+                    <p class="profile-meta-label">Last Name</p>
+                    <p class="profile-meta-value">{{ $lastName !== '' ? $lastName : '-' }}</p>
+                </div>
+                <div class="profile-meta-item">
+                    <p class="profile-meta-label">Username</p>
+                    <p class="profile-meta-value">{{ $identity['username'] ?? $identity['preferred_username'] ?? '-' }}</p>
+                </div>
+                <div class="profile-meta-item">
+                    <p class="profile-meta-label">Auth Subject</p>
+                    <p class="profile-meta-value">{{ $identity['subject'] ?? '-' }}</p>
+                </div>
+                <div class="profile-meta-item">
+                    <p class="profile-meta-label">Status Email</p>
+                    <p class="profile-meta-value">{{ $emailVerifiedLabel }}</p>
                 </div>
                 <div class="profile-meta-item">
                     <p class="profile-meta-label">Terakhir Diperbarui</p>
@@ -337,18 +407,28 @@
 
                 <div class="profile-form-grid">
                     <div class="profile-field">
-                        <label class="profile-label" for="profile-name">Nama</label>
-                        <input id="profile-name" type="text" name="name" value="{{ old('name', $profile['name'] ?? $user->name) }}" class="profile-input" required>
+                        <label class="profile-label" for="profile-first-name">First Name</label>
+                        <input id="profile-first-name" type="text" name="first_name" value="{{ old('first_name', $firstName) }}" class="profile-input" required>
+                    </div>
+
+                    <div class="profile-field">
+                        <label class="profile-label" for="profile-last-name">Last Name</label>
+                        <input id="profile-last-name" type="text" name="last_name" value="{{ old('last_name', $lastName) }}" class="profile-input">
+                    </div>
+
+                    <div class="profile-field">
+                        <label class="profile-label" for="profile-username">Username</label>
+                        <input id="profile-username" type="text" value="{{ $identity['username'] ?? $identity['preferred_username'] ?? '-' }}" class="profile-input" readonly aria-readonly="true">
                     </div>
 
                     <div class="profile-field">
                         <label class="profile-label" for="profile-email">Email</label>
-                        <input id="profile-email" type="email" value="{{ $profile['email'] ?? $user->email }}" class="profile-input" readonly aria-readonly="true">
+                        <input id="profile-email" type="email" value="{{ $displayEmail }}" class="profile-input" readonly aria-readonly="true">
                     </div>
 
                     <div class="profile-field is-full">
                         <div class="profile-note">
-                            Jika tidak ingin mengganti password, kosongkan dua field password di bawah ini.
+                            Perubahan first name, last name, dan password di halaman ini akan diteruskan ke akun Keycloak aktif Anda. Username dan email mengikuti identitas login saat ini.
                         </div>
                     </div>
 

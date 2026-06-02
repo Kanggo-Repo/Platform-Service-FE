@@ -43,7 +43,8 @@ class ProfileController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
             'password' => ['nullable', 'string', 'confirmed', 'min:8'],
         ]);
 
@@ -55,7 +56,7 @@ class ProfileController extends Controller
 
         $user = $request->user();
         $user->forceFill([
-            'name' => $profile['name'] ?? $validated['name'],
+            'name' => $profile['full_name'] ?? trim(($validated['first_name'] ?? '').' '.($validated['last_name'] ?? '')),
             'email' => $profile['email'] ?? $user->email,
         ])->save();
 
