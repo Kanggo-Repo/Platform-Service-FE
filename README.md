@@ -1,58 +1,353 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Platform Service FE
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+`platform-service-fe` adalah shell frontend utama untuk workspace platform. Repo ini menjadi pintu masuk admin, owner profile, dashboard lintas service, manajemen user, manajemen role, dan status registrasi.
 
-## About Laravel
+## Tanggung Jawab Utama
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- menjalankan login browser ke Keycloak
+- memanggil `platform-service-be` untuk identity, navigation, dashboard, profile, role, user, dan registration settings
+- menjadi owner page untuk:
+  - dashboard platform
+  - profile
+  - manajemen user
+  - manajemen role
+  - status registrasi
+  - placeholder lokal untuk `workers` dan `skills`
+- menyediakan sidebar lintas service yang terasa seperti monolith, tetapi diarahkan ke owner service yang benar
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Posisi Dalam Arsitektur
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+browser
+  -> platform-service-fe
+    -> Keycloak
+    -> platform-service-be
+    -> supply-service-be
+    -> calculation-service-be
+    -> supply-service-fe / calculation-service-fe (via link workspace)
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Halaman yang Dimiliki
 
-## Contributing
+### Auth
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- `GET /login`
+- `GET /auth/redirect`
+- `GET /auth/callback`
+- `POST /logout`
 
-## Code of Conduct
+Login langsung diarahkan ke Keycloak. Tidak ada lagi login form lokal sebagai source of truth auth.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Workspace dan Profile
 
-## Security Vulnerabilities
+- `GET /workspace`
+- `GET /profile`
+- `PUT /profile`
+- `GET /access-pending`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Platform-Owned Admin Surfaces
 
-## License
+- `GET /settings/users`
+- `POST /settings/users`
+- `PUT /settings/users/{user}`
+- `DELETE /settings/users/{user}`
+- `POST /settings/users/registration`
+- `GET /settings/roles`
+- `POST /settings/roles`
+- `PUT /settings/roles/{role}`
+- `DELETE /settings/roles/{role}`
+- `GET /settings/registration`
+- `PUT /settings/registration`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Local Placeholder Pages
+
+- `GET /workers`
+- `GET /skills`
+
+Halaman ini sudah disediakan lokal di platform FE agar tidak lagi bergantung ke staging monolith.
+
+## Auth dan Cross-Service Session Model
+
+Repo ini memakai Keycloak OIDC browser flow.
+
+Flow ringkas:
+
+1. user membuka page yang diproteksi
+2. middleware `platform.auth` mengecek session lokal
+3. bila perlu login, user diarahkan ke Keycloak
+4. callback menyimpan session lokal FE
+5. FE membaca identity dan permission snapshot dari `platform-service-be`
+6. shared auth subject cookie dipakai agar logout/login lintas service tetap sinkron
+
+### Standby / Reauth Behavior
+
+Saat session perlu reauth setelah idle:
+
+- URL terakhir disimpan
+- setelah callback Keycloak, user dikembalikan ke URL asal
+- user tidak lagi dilempar selalu ke default page service
+
+## Authorization Model di FE
+
+Sidebar dan route guard mengikuti `permission_snapshot` dari platform API.
+
+Implikasinya:
+
+- menu yang tidak dimiliki role user akan disembunyikan
+- bila user memaksa membuka route yang tidak diizinkan, FE akan mengarahkan user kembali dengan alert `Akses Ditolak`
+- `super_admin` adalah bootstrap admin penuh
+
+## Integrasi Keluar
+
+### Platform Backend
+
+Owner API utama:
+
+- `/api/v1/me`
+- `/api/v1/navigation`
+- `/api/v1/dashboard`
+- `/api/v1/profile`
+- `/api/v1/roles`
+- `/api/v1/users`
+- `/api/v1/settings/registration`
+
+### Supply Backend
+
+Dipakai untuk:
+
+- badge store sidebar
+- modal tambah material owner supply
+- preferensi tab material lintas service
+
+### Calculation Backend
+
+Dipakai untuk:
+
+- badge draft proyek sidebar
+- redirect flow ke page start calculation
+
+### Keycloak
+
+Dipakai untuk:
+
+- login browser
+- logout browser
+- shared active subject cookie sync
+
+## Konfigurasi Environment Penting
+
+Salin `.env.example` menjadi `.env`, lalu isi minimal grup berikut.
+
+### App
+
+- `APP_NAME`
+- `APP_ENV`
+- `APP_DEBUG`
+- `APP_URL`
+- `SESSION_DOMAIN`
+
+### Platform Backend
+
+- `PLATFORM_SERVICE_BASE_URL`
+
+### Keycloak
+
+- `KEYCLOAK_BASE_URL`
+- `KEYCLOAK_REALM`
+- `KEYCLOAK_CLIENT_ID`
+- `KEYCLOAK_VERIFY_SSL`
+- `KEYCLOAK_CA_BUNDLE`
+- `KEYCLOAK_SHARED_SUBJECT_COOKIE`
+
+### Cross-Service Links dan Owner APIs
+
+- `SUPPLY_FE_BASE_URL`
+- `SUPPLY_SERVICE_BASE_URL`
+- `SUPPLY_SERVICE_VERIFY_SSL`
+- `SUPPLY_SERVICE_CA_BUNDLE`
+- `CALCULATION_FE_BASE_URL`
+- `CALCULATION_SERVICE_BASE_URL`
+- `CALCULATION_SERVICE_VERIFY_SSL`
+- `CALCULATION_SERVICE_CA_BUNDLE`
+- `INTERNAL_CALLER_NAME`
+- `INTERNAL_SERVICE_TOKEN`
+
+## Local Development Setup
+
+### Prasyarat
+
+- PHP 8.3+
+- Composer
+- Node.js dan npm
+- `platform-service-be` aktif
+- Keycloak realm `kanggo` aktif
+- `supply-service-be` dan `calculation-service-be` aktif bila ingin seluruh badge dan modal lintas service bekerja penuh
+
+### Instalasi
+
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+```
+
+### Menjalankan Aplikasi
+
+```bash
+composer run dev
+```
+
+Atau manual:
+
+```bash
+php artisan serve --host=platformfe.lvh.me --port=8021
+npm run dev
+```
+
+Gunakan host dan port yang konsisten dengan allowlist Keycloak team.
+
+## Development Commands
+
+```bash
+php artisan test
+vendor/bin/pint
+npm run build
+```
+
+## Sidebar dan Navigation Notes
+
+Repo ini menyatukan feel lintas service seperti monolith.
+
+Prinsip yang dipakai:
+
+- menu tetap terlihat seragam di `platform`, `supply`, dan `calculation`
+- link diarahkan ke owner service yang benar
+- `Platform` menjadi owner untuk:
+  - profile
+  - user management
+  - role management
+  - registration policy
+  - workers
+  - skills
+- `Supply` menjadi owner untuk:
+  - material
+  - units
+  - stores
+  - store locations
+  - store search radius
+- `Calculation` menjadi owner untuk:
+  - work items
+  - draft/log calculation
+  - work taxonomy
+  - recommendation settings
+
+## UI Behavior Khusus
+
+### Dashboard
+
+- tampilan mengikuti monolith 1:1 semaksimal mungkin
+- data berasal dari owner service melalui platform backend
+
+### Material Modal
+
+- `Tambah Material` membuka owner modal supply dari mana pun di shell platform
+- state tab material lintas service dipertahankan agar klik menu `Material` kembali ke last state terakhir
+
+### Alerts dan Confirmation
+
+- confirm memakai modal tengah ala monolith
+- alert memakai toast kanan bawah ala monolith
+
+## Testing Strategy
+
+Test utama repo ini mencakup:
+
+- OIDC flow
+- workspace dashboard
+- profile page
+- user management donor page
+- role management
+- sidebar permission behavior
+- cross-service auth sync
+
+## Docker dan Deploy
+
+Repo ini memiliki:
+
+- `compose.yml`
+- `compose.staging.yml`
+- `compose.production.yml`
+- `Dockerfile`
+- `Dockerfile.production`
+- `docker/entrypoint.sh`
+
+`compose.production.yml` memakai baseline production ala monolith service split:
+
+- image production multi-stage
+- asset Vite dibuild di image
+- `php-fpm`
+- blue/green app service
+- external Docker network `frontend` dan `backend`
+
+## CI
+
+Workflow `.github/workflows/ci.yml` menggunakan base monolith organization.
+
+Job umum:
+
+- install composer dan npm
+- build frontend
+- jalankan test Laravel
+- validasi compose bila file compose ada
+
+## Struktur Folder Penting
+
+- `app/Http/Controllers/Auth` flow login/logout Keycloak
+- `app/Http/Controllers` page owners platform
+- `app/Services` HTTP client ke platform/supply/calculation
+- `resources/views/layouts/app.blade.php` shell global, topbar, sidebar, toast, confirm
+- `resources/views/profile` owner page profile
+- `resources/views/settings/users` dan `resources/views/settings/roles` owner page admin
+
+## Troubleshooting
+
+### Sidebar menampilkan menu yang salah untuk role tertentu
+
+Cek response identity dari platform backend:
+
+- roles efektif
+- permission snapshot
+- allowed services
+
+### Profile tidak sinkron dengan Keycloak
+
+Cek:
+
+- response `GET /api/v1/profile`
+- subject user aktif
+- callback login memakai user yang benar
+
+### Badge `Toko` atau `Proyek` tidak muncul
+
+Cek:
+
+- koneksi ke owner service backend
+- env `SUPPLY_SERVICE_BASE_URL` dan `CALCULATION_SERVICE_BASE_URL`
+- service token internal
+
+### Logout platform tidak menjatuhkan service lain
+
+Cek:
+
+- shared auth subject cookie
+- session domain
+- middleware auth sync di FE lain
+
+## Related Repositories
+
+- `platform-service-be`
+- `supply-service-fe`
+- `supply-service-be`
+- `calculation-service-fe`
+- `calculation-service-be`
