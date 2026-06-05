@@ -54,7 +54,7 @@ jobs:
               echo "deploy_environment=production" >> "$GITHUB_OUTPUT"
               echo "compose_file=compose.production.yml" >> "$GITHUB_OUTPUT"
               echo "app_service_prefix=app" >> "$GITHUB_OUTPUT"
-              echo "deploy_dir=/home/a/dcl/platform-servoce/frontend" >> "$GITHUB_OUTPUT"
+              echo "deploy_dir=/home/a/dck/platform-service/frontend" >> "$GITHUB_OUTPUT"
               echo "nginx_config_file=/home/a/dck/nginx-config/platformfe.conf" >> "$GITHUB_OUTPUT"
               echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
               ;;
