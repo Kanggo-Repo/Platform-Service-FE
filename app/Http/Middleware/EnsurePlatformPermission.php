@@ -12,8 +12,7 @@ class EnsurePlatformPermission
 {
     public function __construct(
         private readonly PlatformPermissionGate $permissionGate,
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next, string $permission): Response
     {
