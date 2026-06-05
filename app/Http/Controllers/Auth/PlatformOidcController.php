@@ -92,6 +92,11 @@ class PlatformOidcController extends Controller
             : redirect()->route('workspace.index');
     }
 
+    public function consume(Request $request): RedirectResponse
+    {
+        return $this->callback($request);
+    }
+
     public function logout(Request $request): RedirectResponse
     {
         $idTokenHint = $request->session()->pull('platform_id_token');
