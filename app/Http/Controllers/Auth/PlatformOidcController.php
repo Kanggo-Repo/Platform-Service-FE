@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RuntimeException;
+use Throwable;
 
 class PlatformOidcController extends Controller
 {
@@ -45,6 +46,18 @@ class PlatformOidcController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
+        // A duplicate or prefetched callback can arrive after a concurrent
+        // request has already consumed the single-use authorization code and
+        // signed the user in. Re-exchanging the same code would fail with
+        // invalid_grant, so short-circuit straight to the workspace instead.
+        if (Auth::guard('web')->check()) {
+            $redirectTarget = LoginRedirectMemory::pull($request);
+
+            return $redirectTarget !== null
+                ? redirect()->to($redirectTarget)
+                : redirect()->route('workspace.index');
+        }
+
         if ($request->string('state')->toString() !== $request->session()->pull('oidc_state')) {
             return redirect()->route('login');
         }
@@ -56,24 +69,35 @@ class PlatformOidcController extends Controller
             return redirect()->route('login');
         }
 
-        $tokens = $this->keycloakOidcService->exchangeCode(
-            code: $code,
-            codeVerifier: $codeVerifier,
-            redirectUri: route('auth.callback'),
-        );
+        try {
+            $tokens = $this->keycloakOidcService->exchangeCode(
+                code: $code,
+                codeVerifier: $codeVerifier,
+                redirectUri: route('auth.callback'),
+            );
 
-        $request->session()->put('platform_access_token', $tokens['access_token'] ?? null);
+            $accessToken = $tokens['access_token'] ?? null;
+            if (! is_string($accessToken) || $accessToken === '') {
+                return redirect()->route('login');
+            }
+
+            $me = $this->platformServiceClient->me($accessToken);
+            $user = $this->upsertUser($me);
+        } catch (Throwable $exception) {
+            // A replayed/expired authorization code (invalid_grant) or a
+            // transient platform-service failure must not surface as a 500.
+            // Send the user back through /login, which re-authenticates
+            // cleanly against the active Keycloak SSO session.
+            report($exception);
+
+            return redirect()->route('login');
+        }
+
+        $request->session()->put('platform_access_token', $accessToken);
         $request->session()->put('platform_refresh_token', $tokens['refresh_token'] ?? null);
         $request->session()->put('platform_id_token', $tokens['id_token'] ?? null);
         $request->session()->put('platform_token_expires_at', now()->addSeconds((int) ($tokens['expires_in'] ?? 0))->timestamp);
 
-        $accessToken = $tokens['access_token'] ?? null;
-        if (! is_string($accessToken) || $accessToken === '') {
-            return redirect()->route('login');
-        }
-
-        $me = $this->platformServiceClient->me($accessToken);
-        $user = $this->upsertUser($me);
         $redirectTarget = LoginRedirectMemory::pull($request);
 
         Auth::guard('web')->login($user, true);

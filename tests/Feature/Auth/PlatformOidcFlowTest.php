@@ -114,6 +114,48 @@ test('callback returns user to remembered page after standby re-login', function
     expect(session()->has('platform_post_login_redirect'))->toBeFalse();
 });
 
+test('callback redirects to login instead of erroring when the code exchange fails', function () {
+    Http::fake([
+        'https://auth.example.test/realms/kanggo/protocol/openid-connect/token' => Http::response([
+            'error' => 'invalid_grant',
+            'error_description' => 'Code not valid',
+        ], 400),
+    ]);
+
+    $response = $this->withSession([
+        'oidc_state' => 'expected-state',
+        'oidc_code_verifier' => 'verifier-123',
+    ])->get(route('auth.callback', [
+        'code' => 'replayed-code',
+        'state' => 'expected-state',
+    ]));
+
+    $response->assertRedirect(route('login'));
+    expect(auth()->check())->toBeFalse();
+    expect(session()->has('platform_access_token'))->toBeFalse();
+});
+
+test('duplicate callback for an already authenticated session skips the code exchange', function () {
+    Http::fake();
+
+    $user = User::factory()->create([
+        'auth_provider' => 'keycloak',
+        'auth_subject' => 'keycloak:kc-user-1',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->withSession([
+            'oidc_state' => 'expected-state',
+            'oidc_code_verifier' => 'verifier-123',
+        ])->get(route('auth.callback', [
+            'code' => 'authorization-code',
+            'state' => 'expected-state',
+        ]));
+
+    $response->assertRedirect(route('workspace.index'));
+    Http::assertNothingSent();
+});
+
 test('logout clears session and redirects to keycloak logout endpoint', function () {
     $response = $this->withSession([
         'platform_access_token' => 'access-token-123',
