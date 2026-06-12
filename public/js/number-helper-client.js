@@ -3,6 +3,7 @@
     var endpoint = '/api/v1/number-helper/format';
     var cache = new Map();
     var pending = new Map();
+    var ACCURACY_DECIMALS = 11;
 
     function toNumber(value) {
         if (value === null || value === undefined || value === '') {
@@ -137,7 +138,25 @@
             });
     }
 
+    // Local synchronous twin of PHP NumberHelper::accurate(): round to the
+    // accuracy standard (11 decimals) and return a Number. Use this for any
+    // client-side calculation that must match what the backend stores.
+    function accurate(value, decimals) {
+        var num = toNumber(value);
+        if (num === null) {
+            return 0;
+        }
+        var d = decimals === undefined || decimals === null ? ACCURACY_DECIMALS : Number(decimals);
+        if (!Number.isFinite(d) || d < 0) {
+            d = ACCURACY_DECIMALS;
+        }
+        var factor = Math.pow(10, d);
+        return Math.round((num + Number.EPSILON) * factor) / factor;
+    }
+
     window.NumberHelperClient = {
+        ACCURACY_DECIMALS: ACCURACY_DECIMALS,
+        accurate: accurate,
         formatValues: formatValues,
         formatValue: formatValue,
     };
